@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { auth } from "@/lib/auth"
+import { AUTH } from "@/lib/constants/hebrew"
 
 export default async function LoginPage({
   searchParams,
@@ -27,13 +28,13 @@ export default async function LoginPage({
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>Welcome back</CardTitle>
-          <CardDescription>Sign in to your account</CardDescription>
+          <CardTitle>{AUTH.login.title}</CardTitle>
+          <CardDescription>{AUTH.login.subtitle}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center">
           {reset === "success" && (
             <p className="mb-4 text-sm text-green-600 dark:text-green-400">
-              Password reset successfully. Please sign in with your new password.
+              {AUTH.login.passwordResetSuccess}
             </p>
           )}
           <SignInButton />

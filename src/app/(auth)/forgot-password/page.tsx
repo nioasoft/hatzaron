@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { auth } from "@/lib/auth"
+import { AUTH } from "@/lib/constants/hebrew"
 
 export default async function ForgotPasswordPage() {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -21,9 +22,9 @@ export default async function ForgotPasswordPage() {
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>Forgot password</CardTitle>
+          <CardTitle>{AUTH.forgotPassword.title}</CardTitle>
           <CardDescription>
-            Enter your email address and we&apos;ll send you a reset link
+            {AUTH.forgotPassword.description}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center">

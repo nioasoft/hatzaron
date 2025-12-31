@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { signIn, useSession, signInWithGoogle } from "@/lib/auth-client"
+import { AUTH } from "@/lib/constants/hebrew"
 
 export function SignInButton() {
   const { data: session, isPending: sessionPending } = useSession()
@@ -17,7 +18,7 @@ export function SignInButton() {
   const [isPending, setIsPending] = useState(false)
 
   if (sessionPending) {
-    return <Button disabled>Loading...</Button>
+    return <Button disabled>{AUTH.login.loading}</Button>
   }
 
   if (session) {
@@ -37,13 +38,13 @@ export function SignInButton() {
       })
 
       if (result.error) {
-        setError(result.error.message || "Failed to sign in")
+        setError(result.error.message || AUTH.errors.failedSignIn)
       } else {
         router.push("/dashboard")
         router.refresh()
       }
     } catch {
-      setError("An unexpected error occurred")
+      setError(AUTH.errors.unexpectedError)
     } finally {
       setIsPending(false)
     }
@@ -52,34 +53,37 @@ export function SignInButton() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-sm">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{AUTH.login.email}</Label>
         <Input
           id="email"
           type="email"
-          placeholder="you@example.com"
+          placeholder={AUTH.login.emailPlaceholder}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
           disabled={isPending}
+          dir="ltr"
+          className="text-start"
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{AUTH.login.password}</Label>
         <Input
           id="password"
           type="password"
-          placeholder="Your password"
+          placeholder={AUTH.login.passwordPlaceholder}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           disabled={isPending}
+          dir="ltr"
         />
       </div>
       {error && (
         <p className="text-sm text-destructive">{error}</p>
       )}
       <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? "Signing in..." : "Sign in"}
+        {isPending ? AUTH.login.submitting : AUTH.login.submit}
       </Button>
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
@@ -87,7 +91,7 @@ export function SignInButton() {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">
-            Or continue with
+            {AUTH.login.orContinueWith}
           </span>
         </div>
       </div>
@@ -98,7 +102,7 @@ export function SignInButton() {
         onClick={() => signInWithGoogle()}
         disabled={isPending}
       >
-        <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+        <svg className="me-2 h-4 w-4" viewBox="0 0 24 24">
           <path
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
             fill="#4285F4"
@@ -116,17 +120,17 @@ export function SignInButton() {
             fill="#EA4335"
           />
         </svg>
-        Continue with Google
+        {AUTH.login.loginWithGoogle}
       </Button>
       <div className="text-center text-sm text-muted-foreground">
         <Link href="/forgot-password" className="hover:underline">
-          Forgot password?
+          {AUTH.login.forgotPassword}
         </Link>
       </div>
       <div className="text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
+        {AUTH.login.noAccount}{" "}
         <Link href="/register" className="text-primary hover:underline">
-          Sign up
+          {AUTH.login.register}
         </Link>
       </div>
     </form>

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { requestPasswordReset } from "@/lib/auth-client"
+import { AUTH } from "@/lib/constants/hebrew"
 
 export function ForgotPasswordForm() {
   const [email, setEmail] = useState("")
@@ -25,12 +26,12 @@ export function ForgotPasswordForm() {
       })
 
       if (result.error) {
-        setError(result.error.message || "Failed to send reset email")
+        setError(result.error.message || AUTH.errors.failedResetEmail)
       } else {
         setSuccess(true)
       }
     } catch {
-      setError("An unexpected error occurred")
+      setError(AUTH.errors.unexpectedError)
     } finally {
       setIsPending(false)
     }
@@ -40,12 +41,11 @@ export function ForgotPasswordForm() {
     return (
       <div className="space-y-4 w-full max-w-sm text-center">
         <p className="text-sm text-muted-foreground">
-          If an account exists with that email, a password reset link has been sent.
-          Check your terminal for the reset URL.
+          {AUTH.forgotPassword.successMessage}
         </p>
         <Link href="/login">
           <Button variant="outline" className="w-full">
-            Back to sign in
+            {AUTH.forgotPassword.backToLogin}
           </Button>
         </Link>
       </div>
@@ -55,27 +55,29 @@ export function ForgotPasswordForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-sm">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{AUTH.forgotPassword.email}</Label>
         <Input
           id="email"
           type="email"
-          placeholder="you@example.com"
+          placeholder={AUTH.forgotPassword.emailPlaceholder}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
           disabled={isPending}
+          dir="ltr"
+          className="text-start"
         />
       </div>
       {error && (
         <p className="text-sm text-destructive">{error}</p>
       )}
       <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? "Sending..." : "Send reset link"}
+        {isPending ? AUTH.forgotPassword.submitting : AUTH.forgotPassword.submit}
       </Button>
       <div className="text-center text-sm text-muted-foreground">
-        Remember your password?{" "}
+        {AUTH.forgotPassword.rememberPassword}{" "}
         <Link href="/login" className="text-primary hover:underline">
-          Sign in
+          {AUTH.register.login}
         </Link>
       </div>
     </form>

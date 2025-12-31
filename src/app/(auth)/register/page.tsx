@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { auth } from "@/lib/auth"
+import { AUTH } from "@/lib/constants/hebrew"
 
 export default async function RegisterPage() {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -21,8 +22,8 @@ export default async function RegisterPage() {
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>Create an account</CardTitle>
-          <CardDescription>Get started with your new account</CardDescription>
+          <CardTitle>{AUTH.register.title}</CardTitle>
+          <CardDescription>{AUTH.register.subtitle}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center">
           <SignUpForm />

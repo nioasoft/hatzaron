@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { signUp, signInWithGoogle } from "@/lib/auth-client"
+import { AUTH, VALIDATION } from "@/lib/constants/hebrew"
 
 export function SignUpForm() {
   const router = useRouter()
@@ -22,12 +23,12 @@ export function SignUpForm() {
     setError("")
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match")
+      setError(VALIDATION.passwordMismatch)
       return
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters")
+      setError(VALIDATION.passwordTooShort)
       return
     }
 
@@ -42,13 +43,13 @@ export function SignUpForm() {
       })
 
       if (result.error) {
-        setError(result.error.message || "Failed to create account")
+        setError(result.error.message || AUTH.errors.failedSignUp)
       } else {
         router.push("/dashboard")
         router.refresh()
       }
     } catch {
-      setError("An unexpected error occurred")
+      setError(AUTH.errors.unexpectedError)
     } finally {
       setIsPending(false)
     }
@@ -57,11 +58,11 @@ export function SignUpForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-sm">
       <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="name">{AUTH.register.name}</Label>
         <Input
           id="name"
           type="text"
-          placeholder="Your name"
+          placeholder={AUTH.register.namePlaceholder}
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
@@ -69,46 +70,50 @@ export function SignUpForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{AUTH.register.email}</Label>
         <Input
           id="email"
           type="email"
-          placeholder="you@example.com"
+          placeholder={AUTH.register.emailPlaceholder}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
           disabled={isPending}
+          dir="ltr"
+          className="text-start"
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{AUTH.register.password}</Label>
         <Input
           id="password"
           type="password"
-          placeholder="Create a password"
+          placeholder={AUTH.register.passwordPlaceholder}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           disabled={isPending}
+          dir="ltr"
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
+        <Label htmlFor="confirmPassword">{AUTH.register.confirmPassword}</Label>
         <Input
           id="confirmPassword"
           type="password"
-          placeholder="Confirm your password"
+          placeholder={AUTH.register.confirmPasswordPlaceholder}
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
           disabled={isPending}
+          dir="ltr"
         />
       </div>
       {error && (
         <p className="text-sm text-destructive">{error}</p>
       )}
       <Button type="submit" className="w-full" disabled={isPending}>
-        {isPending ? "Creating account..." : "Create account"}
+        {isPending ? AUTH.register.submitting : AUTH.register.submit}
       </Button>
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
@@ -116,7 +121,7 @@ export function SignUpForm() {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">
-            Or continue with
+            {AUTH.register.orContinueWith}
           </span>
         </div>
       </div>
@@ -127,7 +132,7 @@ export function SignUpForm() {
         onClick={() => signInWithGoogle()}
         disabled={isPending}
       >
-        <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+        <svg className="me-2 h-4 w-4" viewBox="0 0 24 24">
           <path
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
             fill="#4285F4"
@@ -145,12 +150,12 @@ export function SignUpForm() {
             fill="#EA4335"
           />
         </svg>
-        Continue with Google
+        {AUTH.register.continueWithGoogle}
       </Button>
       <div className="text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
+        {AUTH.register.hasAccount}{" "}
         <Link href="/login" className="text-primary hover:underline">
-          Sign in
+          {AUTH.register.login}
         </Link>
       </div>
     </form>
