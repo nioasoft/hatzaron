@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono } from "next/font/google";
+import { Heebo, Open_Sans } from "next/font/google";
 import "./globals.css";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -6,48 +6,46 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const heebo = Heebo({
+  variable: "--font-heebo",
+  subsets: ["hebrew", "latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const openSans = Open_Sans({
+  variable: "--font-open-sans",
+  subsets: ["hebrew", "latin"],
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "Agentic Coding Boilerplate",
-    template: "%s | Agentic Coding Boilerplate",
+    default: "הצהר-הון | ניהול הצהרות הון לרואי חשבון",
+    template: "%s | הצהר-הון",
   },
   description:
-    "Complete agentic coding boilerplate with authentication, database, AI integration, and modern tooling - perfect for building AI-powered applications and autonomous agents by Leon van Zyl",
+    "פלטפורמה חכמה לניהול הצהרות הון עבור משרדי רואי חשבון. חסכו זמן, שפרו את חוויית הלקוח, ונהלו את כל ההצהרות במקום אחד.",
   keywords: [
-    "Next.js",
-    "React",
-    "TypeScript",
-    "AI",
-    "OpenRouter",
-    "Boilerplate",
-    "Authentication",
-    "PostgreSQL",
+    "הצהרת הון",
+    "רואי חשבון",
+    "רשות המסים",
+    "ניהול מסמכים",
+    "SaaS",
+    "ישראל",
   ],
-  authors: [{ name: "Leon van Zyl" }],
-  creator: "Leon van Zyl",
+  authors: [{ name: "הצהר-הון" }],
+  creator: "הצהר-הון",
   openGraph: {
     type: "website",
-    locale: "en_US",
-    siteName: "Agentic Coding Boilerplate",
-    title: "Agentic Coding Boilerplate",
+    locale: "he_IL",
+    siteName: "הצהר-הון",
+    title: "הצהר-הון | ניהול הצהרות הון לרואי חשבון",
     description:
-      "Complete agentic coding boilerplate with authentication, database, AI integration, and modern tooling",
+      "פלטפורמה חכמה לניהול הצהרות הון עבור משרדי רואי חשבון",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Agentic Coding Boilerplate",
+    title: "הצהר-הון | ניהול הצהרות הון לרואי חשבון",
     description:
-      "Complete agentic coding boilerplate with authentication, database, AI integration, and modern tooling",
+      "פלטפורמה חכמה לניהול הצהרות הון עבור משרדי רואי חשבון",
   },
   robots: {
     index: true,
@@ -59,19 +57,19 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  name: "Agentic Coding Boilerplate",
+  name: "הצהר-הון",
   description:
-    "Complete agentic coding boilerplate with authentication, database, AI integration, and modern tooling",
-  applicationCategory: "DeveloperApplication",
+    "פלטפורמה חכמה לניהול הצהרות הון עבור משרדי רואי חשבון",
+  applicationCategory: "BusinessApplication",
   operatingSystem: "Any",
   offers: {
     "@type": "Offer",
     price: "0",
-    priceCurrency: "USD",
+    priceCurrency: "ILS",
   },
   author: {
-    "@type": "Person",
-    name: "Leon van Zyl",
+    "@type": "Organization",
+    name: "הצהר-הון",
   },
 };
 
@@ -81,7 +79,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="he" dir="rtl" suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
@@ -89,7 +87,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${heebo.variable} ${openSans.variable} font-sans antialiased`}
       >
         <ThemeProvider
           attribute="class"
