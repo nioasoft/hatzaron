@@ -1,7 +1,5 @@
 import { Heebo, Open_Sans } from "next/font/google";
 import "./globals.css";
-import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
@@ -95,9 +93,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SiteHeader />
-          <main id="main-content">{children}</main>
-          <SiteFooter />
+          <div className="min-h-screen flex flex-col">
+            {children}
+          </div>
           <Toaster richColors position="top-right" />
         </ThemeProvider>
       </body>
