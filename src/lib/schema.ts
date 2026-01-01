@@ -16,6 +16,11 @@ export const user = pgTable(
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
+    // Admin plugin fields
+    role: text("role"),
+    banned: boolean("banned").default(false),
+    banReason: text("ban_reason"),
+    banExpires: timestamp("ban_expires"),
   },
   (table) => [index("user_email_idx").on(table.email)]
 );
@@ -35,6 +40,8 @@ export const session = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    // Admin plugin fields
+    impersonatedBy: text("impersonated_by"),
   },
   (table) => [
     index("session_user_id_idx").on(table.userId),

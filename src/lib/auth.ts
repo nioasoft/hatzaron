@@ -1,11 +1,20 @@
 import { betterAuth } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { admin } from "better-auth/plugins"
 import { db } from "./db"
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
+  plugins: [
+    admin({
+      defaultRole: "user",
+      adminRoles: ["admin"],
+      impersonationSessionDuration: 3600, // 1 hour
+      allowImpersonatingAdmins: false,
+    }),
+  ],
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,
