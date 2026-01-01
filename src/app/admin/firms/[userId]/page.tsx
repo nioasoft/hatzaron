@@ -8,26 +8,14 @@ import { ImpersonateButton } from "@/components/admin/impersonate-button"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { PLAN_COLORS } from "@/lib/constants/admin"
 import { ADMIN } from "@/lib/constants/hebrew"
 import { db } from "@/lib/db"
 import { user } from "@/lib/schema"
+import { formatDateLong } from "@/lib/utils"
 
 interface PageProps {
   params: Promise<{ userId: string }>
-}
-
-const PLAN_COLORS = {
-  basic: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200",
-  professional: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  enterprise: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-} as const
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("he-IL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(date)
 }
 
 // Mock function to get plan - will be replaced when subscription system is added
@@ -39,7 +27,7 @@ function getMockPlan(): keyof typeof PLAN_COLORS {
 function getMockNextBilling(): string {
   const nextMonth = new Date()
   nextMonth.setMonth(nextMonth.getMonth() + 1)
-  return formatDate(nextMonth)
+  return formatDateLong(nextMonth)
 }
 
 export default async function FirmDetailPage({ params }: PageProps) {
@@ -120,7 +108,7 @@ export default async function FirmDetailPage({ params }: PageProps) {
                 <Calendar className="h-4 w-4" />
                 {ADMIN.firms.detail.registeredAt}
               </span>
-              <span dir="ltr">{formatDate(firm.createdAt)}</span>
+              <span dir="ltr">{formatDateLong(firm.createdAt)}</span>
             </div>
             <div className="flex items-center justify-between py-2">
               <span className="text-muted-foreground">

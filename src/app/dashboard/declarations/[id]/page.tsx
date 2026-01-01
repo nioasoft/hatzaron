@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { DECLARATIONS, ACTIONS } from "@/lib/constants/hebrew"
+import { formatDateLong, formatCurrency } from "@/lib/utils"
 
 // Mock data - will be replaced with real data from database
 const mockDeclarations = [
@@ -55,22 +56,6 @@ const mockDeclarations = [
     ] as TimelineStep[],
   },
 ]
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("he-IL", {
-    style: "currency",
-    currency: "ILS",
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat("he-IL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(new Date(dateString))
-}
 
 interface DeclarationDetailPageProps {
   params: Promise<{ id: string }>
@@ -114,7 +99,7 @@ export default async function DeclarationDetailPage({
               <DeclarationStatusBadge status={declaration.status} />
             </div>
             <p className="text-muted-foreground">
-              הצהרת הון - נוצרה ב-{formatDate(declaration.createdAt)}
+              הצהרת הון - נוצרה ב-{formatDateLong(declaration.createdAt)}
             </p>
           </div>
         </div>
@@ -336,13 +321,13 @@ export default async function DeclarationDetailPage({
               <div>
                 <p className="text-sm text-muted-foreground">תאריך יצירה</p>
                 <p className="font-medium" dir="ltr">
-                  {formatDate(declaration.createdAt)}
+                  {formatDateLong(declaration.createdAt)}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">דדליין להגשה</p>
                 <p className="font-medium" dir="ltr">
-                  {formatDate(declaration.deadline)}
+                  {formatDateLong(declaration.deadline)}
                 </p>
               </div>
             </CardContent>

@@ -11,7 +11,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { PLAN_COLORS, PLAN_NAMES, getMockPlan } from "@/lib/constants/admin"
 import { ADMIN } from "@/lib/constants/hebrew"
+import { formatDate } from "@/lib/utils"
 import { FirmStatusBadge } from "./firm-status-badge"
 
 interface Firm {
@@ -24,27 +26,6 @@ interface Firm {
 
 interface FirmTableProps {
   firms: Firm[]
-}
-
-const PLAN_COLORS = {
-  basic: "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200",
-  professional: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
-  enterprise: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-} as const
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(date)
-}
-
-// Mock function to get plan - will be replaced when subscription system is added
-function getMockPlan(): keyof typeof PLAN_COLORS {
-  const plans: (keyof typeof PLAN_COLORS)[] = ["basic", "professional", "enterprise"]
-  const index = Math.floor(Math.random() * plans.length)
-  return plans[index] ?? "basic"
 }
 
 export function FirmTable({ firms }: FirmTableProps) {
@@ -104,9 +85,7 @@ export function FirmTable({ firms }: FirmTableProps) {
                 </td>
                 <td className="py-3">
                   <Badge variant="secondary" className={PLAN_COLORS[plan]}>
-                    {plan === "basic" && "בסיסי"}
-                    {plan === "professional" && "מקצועי"}
-                    {plan === "enterprise" && "ארגוני"}
+                    {PLAN_NAMES[plan]}
                   </Badge>
                 </td>
                 <td className="py-3">

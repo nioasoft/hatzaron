@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DECLARATIONS } from "@/lib/constants/hebrew"
+import { formatCurrency } from "@/lib/utils"
 import type {
   AssetsData,
   RealEstateAsset,
@@ -21,14 +22,6 @@ import type {
 interface StepAssetsProps {
   data: AssetsData
   onUpdate: (data: Partial<AssetsData>) => void
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("he-IL", {
-    style: "currency",
-    currency: "ILS",
-    maximumFractionDigits: 0,
-  }).format(amount)
 }
 
 function generateId(): string {

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth"
 import { DASHBOARD, DECLARATIONS } from "@/lib/constants/hebrew"
+import { formatDate, formatCurrency } from "@/lib/utils"
 
 // Mock data - will be replaced with real data from database
 const mockStats = {
@@ -63,22 +64,6 @@ const STATUS_COLORS: Record<string, string> = {
   in_review: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   submitted: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
   completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("he-IL", {
-    style: "currency",
-    currency: "ILS",
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(dateString))
 }
 
 export default async function DashboardPage() {

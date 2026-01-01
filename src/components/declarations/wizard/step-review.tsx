@@ -5,18 +5,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { DECLARATIONS, PORTAL } from "@/lib/constants/hebrew"
+import { formatCurrency } from "@/lib/utils"
 import type { WizardData } from "./index"
 
 interface StepReviewProps {
   data: WizardData
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("he-IL", {
-    style: "currency",
-    currency: "ILS",
-    maximumFractionDigits: 0,
-  }).format(amount)
 }
 
 export function StepReview({ data }: StepReviewProps) {

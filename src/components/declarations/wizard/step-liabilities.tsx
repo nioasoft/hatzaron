@@ -5,19 +5,12 @@ import { Plus, Trash2 } from "lucide-react"
 import { LiabilityForm } from "@/components/forms/liability-form"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatCurrency } from "@/lib/utils"
 import type { Liability } from "./index"
 
 interface StepLiabilitiesProps {
   data: Liability[]
   onUpdate: (data: Liability[]) => void
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("he-IL", {
-    style: "currency",
-    currency: "ILS",
-    maximumFractionDigits: 0,
-  }).format(amount)
 }
 
 function generateId(): string {

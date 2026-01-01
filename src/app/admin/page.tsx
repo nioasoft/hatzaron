@@ -8,22 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ADMIN } from "@/lib/constants/hebrew"
 import { db } from "@/lib/db"
 import { user } from "@/lib/schema"
-
-function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(date)
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("he-IL", {
-    style: "currency",
-    currency: "ILS",
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
+import { formatDate, formatCurrency } from "@/lib/utils"
 
 export default async function AdminPage() {
   // Query firms (non-admin users)

@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { DECLARATIONS, ACTIONS } from "@/lib/constants/hebrew"
+import { formatDate, formatCurrency } from "@/lib/utils"
 
 export interface Declaration {
   id: string
@@ -34,22 +35,6 @@ export interface Declaration {
 
 interface DeclarationTableProps {
   declarations: Declaration[]
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("he-IL", {
-    style: "currency",
-    currency: "ILS",
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
-
-function formatDate(dateString: string): string {
-  return new Intl.DateTimeFormat("he-IL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(dateString))
 }
 
 export function DeclarationTable({ declarations }: DeclarationTableProps) {
