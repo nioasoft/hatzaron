@@ -5,7 +5,7 @@
 import "dotenv/config";
 import { db } from "../src/lib/db";
 import { user } from "../src/lib/schema";
-import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 async function setAdminRole() {
   const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
@@ -17,10 +17,11 @@ async function setAdminRole() {
 
   console.log(`🔍 Looking for user with email: ${superAdminEmail}`);
 
+  // Case-insensitive email search
   const existingUsers = await db
     .select()
     .from(user)
-    .where(eq(user.email, superAdminEmail))
+    .where(sql`LOWER(${user.email}) = LOWER(${superAdminEmail})`)
     .limit(1);
 
   const targetUser = existingUsers[0];
@@ -41,7 +42,7 @@ async function setAdminRole() {
   await db
     .update(user)
     .set({ role: "admin" })
-    .where(eq(user.email, superAdminEmail));
+    .where(sql`LOWER(${user.email}) = LOWER(${superAdminEmail})`);
 
   console.log(`✅ Successfully set ${targetUser.email} as admin`);
   console.log(`📊 Previous role: ${targetUser.role || "user"} → New role: admin`);
