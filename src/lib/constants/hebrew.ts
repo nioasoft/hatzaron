@@ -335,6 +335,22 @@ export const ADMIN = {
       delete: "מחק משרד",
       impersonate: "התחבר כמשרד",
     },
+    detail: {
+      backToList: "חזרה לרשימת המשרדים",
+      firmInfo: "פרטי המשרד",
+      subscription: "מנוי",
+      registeredAt: "תאריך הרשמה",
+      status: "סטטוס",
+      plan: "תוכנית",
+      nextBilling: "חיוב הבא",
+      suspending: "משעה...",
+      activating: "מפעיל...",
+    },
+    plans: {
+      basic: "בסיסי",
+      professional: "מקצועי",
+      enterprise: "ארגוני",
+    },
   },
   impersonation: {
     banner: "מחובר כ:",
