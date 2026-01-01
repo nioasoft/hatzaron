@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ACTIONS } from "@/lib/constants/hebrew"
+import { ACTIONS, SETTINGS } from "@/lib/constants/hebrew"
 
 interface ProfileFormData {
   name: string
@@ -41,14 +41,14 @@ export default function ProfileSettingsPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>פרטי חשבון</CardTitle>
-          <CardDescription>עדכן את פרטי החשבון שלך</CardDescription>
+          <CardTitle>{SETTINGS.profile.accountDetails}</CardTitle>
+          <CardDescription>{SETTINGS.profile.updateDetails}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="name">שם מלא</Label>
+                <Label htmlFor="name">{SETTINGS.profile.fullName}</Label>
                 <Input
                   id="name"
                   value={formData.name}
@@ -56,7 +56,7 @@ export default function ProfileSettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="firmName">שם המשרד</Label>
+                <Label htmlFor="firmName">{SETTINGS.profile.firmName}</Label>
                 <Input
                   id="firmName"
                   value={formData.firmName}
@@ -67,7 +67,7 @@ export default function ProfileSettingsPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="email">אימייל</Label>
+                <Label htmlFor="email">{SETTINGS.profile.email}</Label>
                 <Input
                   id="email"
                   type="email"
@@ -77,7 +77,7 @@ export default function ProfileSettingsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">טלפון</Label>
+                <Label htmlFor="phone">{SETTINGS.profile.phone}</Label>
                 <Input
                   id="phone"
                   value={formData.phone}
@@ -89,7 +89,7 @@ export default function ProfileSettingsPage() {
 
             <div className="flex justify-end pt-4 border-t">
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "שומר..." : ACTIONS.save}
+                {isSubmitting ? SETTINGS.profile.saving : ACTIONS.save}
               </Button>
             </div>
           </form>
@@ -98,27 +98,27 @@ export default function ProfileSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>שינוי סיסמה</CardTitle>
-          <CardDescription>עדכן את סיסמת החשבון שלך</CardDescription>
+          <CardTitle>{SETTINGS.profile.changePassword}</CardTitle>
+          <CardDescription>{SETTINGS.profile.changePasswordDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="currentPassword">סיסמה נוכחית</Label>
+              <Label htmlFor="currentPassword">{SETTINGS.profile.currentPassword}</Label>
               <Input id="currentPassword" type="password" dir="ltr" />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="newPassword">סיסמה חדשה</Label>
+                <Label htmlFor="newPassword">{SETTINGS.profile.newPassword}</Label>
                 <Input id="newPassword" type="password" dir="ltr" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">אימות סיסמה</Label>
+                <Label htmlFor="confirmPassword">{SETTINGS.profile.confirmPassword}</Label>
                 <Input id="confirmPassword" type="password" dir="ltr" />
               </div>
             </div>
             <div className="flex justify-end pt-4 border-t">
-              <Button type="submit">עדכן סיסמה</Button>
+              <Button type="submit">{SETTINGS.profile.updatePassword}</Button>
             </div>
           </form>
         </CardContent>

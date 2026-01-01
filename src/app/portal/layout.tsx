@@ -1,4 +1,7 @@
+import { headers } from "next/headers"
+import { redirect } from "next/navigation"
 import { PortalHeader } from "@/components/portal/header"
+import { auth } from "@/lib/auth"
 import { PORTAL } from "@/lib/constants/hebrew"
 
 // Mock function to get accountant branding - would be replaced with actual DB query
@@ -27,6 +30,12 @@ export default async function PortalLayout({
 }: {
   children: React.ReactNode
 }) {
+  const session = await auth.api.getSession({ headers: await headers() })
+
+  if (!session) {
+    redirect("/login")
+  }
+
   // In a real app, accountantId would come from the URL or session
   const accountantId = "default"
   const branding = await getAccountantBranding(accountantId)
