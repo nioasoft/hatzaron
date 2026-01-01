@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm"
 import { ArrowRight, Building2, Mail, Calendar, CreditCard } from "lucide-react"
 import { BanUserButton } from "@/components/admin/ban-user-button"
 import { FirmStatusBadge } from "@/components/admin/firms/firm-status-badge"
+import { ImpersonateButton } from "@/components/admin/impersonate-button"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -91,6 +92,7 @@ export default async function FirmDetailPage({ params }: PageProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <ImpersonateButton userId={firm.id} userName={firm.name || "Unknown"} />
           <BanUserButton userId={firm.id} isBanned={firm.banned ?? false} />
         </div>
       </div>
