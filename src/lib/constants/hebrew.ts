@@ -302,6 +302,50 @@ export const MESSAGES = {
   },
 } as const;
 
+// Admin section
+export const ADMIN = {
+  title: "ניהול מערכת",
+  nav: {
+    dashboard: "סקירה כללית",
+    firms: "משרדים",
+    settings: "הגדרות",
+  },
+  stats: {
+    totalFirms: "סה״כ משרדים",
+    activeSubscriptions: "מנויים פעילים",
+    monthlyRevenue: "הכנסה חודשית",
+    trialUsers: "בתקופת ניסיון",
+  },
+  firms: {
+    title: "ניהול משרדים",
+    subtitle: "ניהול משרדי רואי חשבון",
+    tableHeaders: {
+      firm: "משרד",
+      email: "אימייל",
+      plan: "תוכנית",
+      status: "סטטוס",
+      registeredAt: "תאריך הרשמה",
+      actions: "פעולות",
+    },
+    status: { active: "פעיל", suspended: "מושעה" },
+    actions: {
+      view: "צפייה בפרטים",
+      suspend: "השעה משרד",
+      activate: "הפעל משרד",
+      delete: "מחק משרד",
+      impersonate: "התחבר כמשרד",
+    },
+  },
+  impersonation: {
+    banner: "מחובר כ:",
+    exit: "יציאה",
+    confirmTitle: "התחברות כמשרד",
+    confirmDescription: "אתה עומד להתחבר כמשרד זה. תוכל לראות את לוח הבקרה שלהם ולבצע פעולות בשמם.",
+    confirm: "התחבר",
+    cancel: "ביטול",
+  },
+} as const;
+
 // Marketing page content
 export const MARKETING = {
   hero: {
