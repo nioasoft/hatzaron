@@ -1,11 +1,12 @@
 import Link from "next/link"
-import { Plus, Search, Filter } from "lucide-react"
+import { Plus, Search, Filter, FileText } from "lucide-react"
 import {
   DeclarationTable,
   type Declaration,
 } from "@/components/declarations/declaration-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import { DECLARATIONS, ACTIONS } from "@/lib/constants/hebrew"
 
@@ -97,16 +98,17 @@ export default function DeclarationsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row">
+      <div className="flex flex-col gap-4 sm:flex-row" role="search">
         <div className="relative flex-1">
-          <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input
             placeholder={`${ACTIONS.search}...`}
             className="ps-9"
+            aria-label="חיפוש הצהרות"
           />
         </div>
         <Button variant="outline">
-          <Filter className="h-4 w-4 me-2" />
+          <Filter className="h-4 w-4 me-2" aria-hidden="true" />
           {ACTIONS.filter}
         </Button>
       </div>
@@ -122,7 +124,23 @@ export default function DeclarationsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <DeclarationTable declarations={mockDeclarations} />
+          {mockDeclarations.length > 0 ? (
+            <DeclarationTable declarations={mockDeclarations} />
+          ) : (
+            <EmptyState
+              icon={FileText}
+              title="אין הצהרות עדיין"
+              description="צור את ההצהרה הראשונה שלך כדי להתחיל לנהל הצהרות הון עבור הלקוחות שלך."
+              action={
+                <Button asChild>
+                  <Link href="/dashboard/declarations/new">
+                    <Plus className="h-4 w-4 me-2" />
+                    {DECLARATIONS.newDeclaration}
+                  </Link>
+                </Button>
+              }
+            />
+          )}
         </CardContent>
       </Card>
     </div>

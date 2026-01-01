@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Calendar, User, Shield, ArrowLeft, Lock, Smartphone } from "lucide-react";
+import { Mail, Calendar, User, Shield, ArrowRight, Lock, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -72,10 +72,10 @@ export default function ProfilePage() {
           onClick={() => router.back()}
           className="flex items-center gap-2"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back
+          <ArrowRight className="h-4 w-4" />
+          חזרה
         </Button>
-        <h1 className="text-3xl font-bold">Your Profile</h1>
+        <h1 className="text-3xl font-bold">הפרופיל שלך</h1>
       </div>
 
       <div className="grid gap-6">

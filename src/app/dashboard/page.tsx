@@ -106,7 +106,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 animate-stagger">
         <StatCard
           title={DASHBOARD.stats.active}
           value={mockStats.active}

@@ -1,8 +1,9 @@
 import Link from "next/link"
-import { Plus, Search, Filter } from "lucide-react"
+import { Plus, Search, Filter, Users } from "lucide-react"
 import { ClientTable, type Client } from "@/components/clients/client-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import { CLIENTS, ACTIONS } from "@/lib/constants/hebrew"
 
@@ -103,13 +104,17 @@ export default function ClientsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row">
+      <div className="flex flex-col gap-4 sm:flex-row" role="search">
         <div className="relative flex-1">
-          <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder={`${ACTIONS.search}...`} className="ps-9" />
+          <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input
+            placeholder={`${ACTIONS.search}...`}
+            className="ps-9"
+            aria-label="חיפוש לקוחות"
+          />
         </div>
         <Button variant="outline">
-          <Filter className="h-4 w-4 me-2" />
+          <Filter className="h-4 w-4 me-2" aria-hidden="true" />
           {ACTIONS.filter}
         </Button>
       </div>
@@ -125,7 +130,23 @@ export default function ClientsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <ClientTable clients={mockClients} />
+          {mockClients.length > 0 ? (
+            <ClientTable clients={mockClients} />
+          ) : (
+            <EmptyState
+              icon={Users}
+              title="אין לקוחות עדיין"
+              description="הוסף את הלקוח הראשון שלך כדי להתחיל לנהל הצהרות הון."
+              action={
+                <Button asChild>
+                  <Link href="/dashboard/clients/new">
+                    <Plus className="h-4 w-4 me-2" />
+                    {CLIENTS.addClient}
+                  </Link>
+                </Button>
+              }
+            />
+          )}
         </CardContent>
       </Card>
     </div>
