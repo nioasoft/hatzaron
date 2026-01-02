@@ -7,13 +7,6 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
-  user: {
-    additionalFields: {
-      firmId: {
-        type: "string",
-      },
-    },
-  },
   plugins: [
     admin({
       defaultRole: "user",
