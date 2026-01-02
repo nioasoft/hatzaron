@@ -24,7 +24,7 @@ export function MarketingFooter() {
           <div className="md:col-span-2">
             <Link href="/" className="flex items-center gap-3 mb-4">
               <Image
-                src="/hatzaron_logo.png"
+                src="/logo.png"
                 alt=""
                 width={40}
                 height={40}

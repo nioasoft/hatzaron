@@ -1,10 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react"
+import { MoreHorizontal, Eye, Edit, Trash2, AlertCircle, Clock } from "lucide-react"
 import {
   DeclarationStatusBadge,
-  type DeclarationStatus,
 } from "@/components/declarations/declaration-status"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,19 +21,22 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { DECLARATIONS, ACTIONS } from "@/lib/constants/hebrew"
-import { formatDate, formatCurrency } from "@/lib/utils"
-
-export interface Declaration {
-  id: string
-  clientName: string
-  createdAt: string
-  deadline: string
-  status: DeclarationStatus
-  netWorth: number
-}
+import { formatDate } from "@/lib/utils"
+import { Badge } from "@/components/ui/badge"
+import { DeclarationWithClient } from "@/app/dashboard/declarations/actions"
 
 interface DeclarationTableProps {
-  declarations: Declaration[]
+  declarations: DeclarationWithClient[]
+}
+
+function PriorityBadge({ priority }: { priority: string }) {
+  if (priority === 'critical') {
+    return <Badge variant="destructive" className="flex w-fit items-center gap-1"><AlertCircle className="h-3 w-3" /> קריטי</Badge>
+  }
+  if (priority === 'urgent') {
+    return <Badge variant="outline" className="flex w-fit items-center gap-1 border-orange-500 text-orange-500"><Clock className="h-3 w-3" /> דחוף</Badge>
+  }
+  return <span className="text-muted-foreground text-sm">רגיל</span>
 }
 
 export function DeclarationTable({ declarations }: DeclarationTableProps) {
@@ -46,7 +48,7 @@ export function DeclarationTable({ declarations }: DeclarationTableProps) {
           <TableHead>{DECLARATIONS.tableHeaders.createdAt}</TableHead>
           <TableHead>{DECLARATIONS.tableHeaders.deadline}</TableHead>
           <TableHead>{DECLARATIONS.tableHeaders.status}</TableHead>
-          <TableHead>{DECLARATIONS.tableHeaders.netWorth}</TableHead>
+          <TableHead>עדיפות</TableHead>
           <TableHead className="w-[70px]">
             {DECLARATIONS.tableHeaders.actions}
           </TableHead>
@@ -64,16 +66,16 @@ export function DeclarationTable({ declarations }: DeclarationTableProps) {
               </Link>
             </TableCell>
             <TableCell className="text-muted-foreground" dir="ltr">
-              {formatDate(declaration.createdAt)}
+              {formatDate(declaration.createdAt.toISOString())}
             </TableCell>
             <TableCell className="text-muted-foreground" dir="ltr">
-              {formatDate(declaration.deadline)}
+              {declaration.deadline ? formatDate(declaration.deadline.toISOString()) : "-"}
             </TableCell>
             <TableCell>
               <DeclarationStatusBadge status={declaration.status} />
             </TableCell>
-            <TableCell className="font-medium" dir="ltr">
-              {formatCurrency(declaration.netWorth)}
+            <TableCell>
+              <PriorityBadge priority={declaration.priority} />
             </TableCell>
             <TableCell>
               <DropdownMenu>

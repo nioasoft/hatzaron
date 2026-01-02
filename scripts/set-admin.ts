@@ -1,56 +1,39 @@
-/**
- * One-time script to set the super admin user role
- * Run with: npx tsx scripts/set-admin.ts
- */
-import "dotenv/config";
-import { db } from "../src/lib/db";
-import { user } from "../src/lib/schema";
-import { sql } from "drizzle-orm";
+import { eq } from "drizzle-orm"
+import { db } from "../src/lib/db"
+import { user } from "../src/lib/schema"
 
-async function setAdminRole() {
-  const superAdminEmail = process.env.SUPER_ADMIN_EMAIL;
+async function setAdmin() {
+  const email = process.argv[2]
 
-  if (!superAdminEmail) {
-    console.error("❌ SUPER_ADMIN_EMAIL environment variable is not set");
-    process.exit(1);
+  if (!email) {
+    console.error("Please provide an email address: npx tsx scripts/set-admin.ts <email>")
+    process.exit(1)
   }
 
-  console.log(`🔍 Looking for user with email: ${superAdminEmail}`);
+  console.log(`Looking for user with email: ${email}...`)
 
-  // Case-insensitive email search
-  const existingUsers = await db
-    .select()
-    .from(user)
-    .where(sql`LOWER(${user.email}) = LOWER(${superAdminEmail})`)
-    .limit(1);
+  const foundUser = await db.query.user.findFirst({
+    where: eq(user.email, email),
+  })
 
-  const targetUser = existingUsers[0];
-
-  if (!targetUser) {
-    console.error(`❌ User with email ${superAdminEmail} not found`);
-    console.log(
-      "📝 Please register a user with this email first, then run this script again."
-    );
-    process.exit(1);
+  if (!foundUser) {
+    console.error("User not found!")
+    process.exit(1)
   }
 
-  if (targetUser.role === "admin") {
-    console.log(`✅ User ${targetUser.email} is already an admin`);
-    process.exit(0);
-  }
+  console.log(`Found user: ${foundUser.name} (${foundUser.id})`)
+  console.log(`Current role: ${foundUser.role}`)
 
   await db
     .update(user)
     .set({ role: "admin" })
-    .where(sql`LOWER(${user.email}) = LOWER(${superAdminEmail})`);
+    .where(eq(user.id, foundUser.id))
 
-  console.log(`✅ Successfully set ${targetUser.email} as admin`);
-  console.log(`📊 Previous role: ${targetUser.role || "user"} → New role: admin`);
+  console.log("Successfully updated user role to 'admin'")
+  process.exit(0)
 }
 
-setAdminRole()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error("❌ Error:", error);
-    process.exit(1);
-  });
+setAdmin().catch((err) => {
+  console.error(err)
+  process.exit(1)
+})

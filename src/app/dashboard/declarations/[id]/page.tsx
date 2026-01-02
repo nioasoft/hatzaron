@@ -4,83 +4,59 @@ import {
   ArrowRight,
   Edit,
   FileText,
-  Building,
-  Car,
-  Wallet,
-  TrendingUp,
-  CreditCard,
+  Users,
+  Clock,
+  AlertCircle,
 } from "lucide-react"
 import { DeclarationStatusBadge } from "@/components/declarations/declaration-status"
-import { Timeline, type TimelineStep } from "@/components/declarations/timeline"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { DECLARATIONS, ACTIONS } from "@/lib/constants/hebrew"
-import { formatDateLong, formatCurrency } from "@/lib/utils"
+import { formatDateLong } from "@/lib/utils"
+import { getDeclarationDetails } from "../actions"
+import { Badge } from "@/components/ui/badge"
+import { PortalLinkButton } from "@/components/declarations/portal-link-button"
 
-// Mock data - will be replaced with real data from database
-const mockDeclarations = [
-  {
-    id: "1",
-    clientName: "יוסי כהן",
-    clientId: "123456789",
-    clientPhone: "050-1234567",
-    clientEmail: "yossi@example.com",
-    createdAt: "2024-12-15",
-    deadline: "2025-04-15",
-    status: "pending_documents" as const,
-    netWorth: 2500000,
-    assets: {
-      realEstate: [
-        { type: "דירת מגורים", value: 2000000, location: "תל אביב" },
-      ],
-      vehicles: [{ type: "רכב פרטי", value: 150000, model: "טויוטה קורולה 2022" }],
-      bankAccounts: [
-        { bank: "בנק לאומי", balance: 250000 },
-        { bank: "בנק הפועלים", balance: 100000 },
-      ],
-      investments: [{ type: "קרן השתלמות", value: 180000 }],
-    },
-    liabilities: [{ type: "משכנתא", amount: 800000, institution: "בנק לאומי" }],
-    timeline: [
-      { id: "1", label: "הצהרה נוצרה", status: "completed", date: "15/12/2024" },
-      {
-        id: "2",
-        label: "פרטי לקוח הוזנו",
-        status: "completed",
-        date: "16/12/2024",
-      },
-      { id: "3", label: "ממתין למסמכים", status: "current" },
-      { id: "4", label: "בדיקה סופית", status: "upcoming" },
-      { id: "5", label: "הגשה לרשות המסים", status: "upcoming" },
-    ] as TimelineStep[],
-  },
-]
-
-interface DeclarationDetailPageProps {
-  params: Promise<{ id: string }>
+interface DeclarationDetailPageParams {
+  id: string
 }
+
+function PriorityBadge({ priority }: { priority: string }) {
+  if (priority === 'critical') {
+    return <Badge variant="destructive" className="flex w-fit items-center gap-1"><AlertCircle className="h-3 w-3" /> קריטי</Badge>
+  }
+  if (priority === 'urgent') {
+    return <Badge variant="outline" className="flex w-fit items-center gap-1 border-orange-500 text-orange-500"><Clock className="h-3 w-3" /> דחוף</Badge>
+  }
+  return <span className="text-muted-foreground text-sm">רגיל</span>
+}
+
+
 
 export default async function DeclarationDetailPage({
   params,
-}: DeclarationDetailPageProps) {
+}: {
+  params: Promise<DeclarationDetailPageParams>
+}) {
   const { id } = await params
-  const declaration = mockDeclarations.find((d) => d.id === id)
+  const declaration = await getDeclarationDetails(id)
 
   if (!declaration) {
     notFound()
   }
 
-  const totalAssets =
-    declaration.assets.realEstate.reduce((sum, a) => sum + a.value, 0) +
-    declaration.assets.vehicles.reduce((sum, a) => sum + a.value, 0) +
-    declaration.assets.bankAccounts.reduce((sum, a) => sum + a.balance, 0) +
-    declaration.assets.investments.reduce((sum, a) => sum + a.value, 0)
-
-  const totalLiabilities = declaration.liabilities.reduce(
-    (sum, l) => sum + l.amount,
-    0
+  const sortedDocuments = [...declaration.documents].sort((a, b) =>
+    a.category.localeCompare(b.category)
   )
+
+  // Group documents by category for display
+  const documentsByCategory: Record<string, typeof declaration.documents> = {}
+  sortedDocuments.forEach(doc => {
+    if (!documentsByCategory[doc.category]) {
+      documentsByCategory[doc.category] = []
+    }
+    documentsByCategory[doc.category]!.push(doc)
+  })
 
   return (
     <div className="space-y-6">
@@ -95,20 +71,26 @@ export default async function DeclarationDetailPage({
           </Button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{declaration.clientName}</h1>
-              <DeclarationStatusBadge status={declaration.status} />
+              <h1 className="text-2xl font-bold">{declaration.client.name}</h1>
+              <DeclarationStatusBadge status={declaration.status as any} /> {/* Cast needed for now as status type mismatch */}
             </div>
             <p className="text-muted-foreground">
               הצהרת הון - נוצרה ב-{formatDateLong(declaration.createdAt)}
             </p>
           </div>
         </div>
-        <Button asChild>
-          <Link href={`/dashboard/declarations/${id}/edit`}>
-            <Edit className="h-4 w-4 me-2" />
-            {ACTIONS.edit}
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild>
+            <Link href={`/dashboard/declarations/${declaration.id}/edit`}>
+              <Edit className="h-4 w-4 me-2" />
+              {ACTIONS.edit}
+            </Link>
+          </Button>
+          <Button variant="outline" onClick={() => alert("TODO: Send reminder email/SMS")}>
+            <Clock className="h-4 w-4 me-2" />
+            שלח תזכורת
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -118,200 +100,104 @@ export default async function DeclarationDetailPage({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
+                <Users className="h-5 w-5" />
                 פרטי לקוח
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div>
                 <p className="text-sm text-muted-foreground">שם מלא</p>
-                <p className="font-medium">{declaration.clientName}</p>
+                <p className="font-medium">{declaration.client.name}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">תעודת זהות</p>
                 <p className="font-medium" dir="ltr">
-                  {declaration.clientId}
+                  {declaration.client.idNumber || "-"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">טלפון</p>
                 <p className="font-medium" dir="ltr">
-                  {declaration.clientPhone}
+                  {declaration.client.phone || "-"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">אימייל</p>
                 <p className="font-medium" dir="ltr">
-                  {declaration.clientEmail}
+                  {declaration.client.email || "-"}
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Assets Summary */}
+          {/* Documents List */}
           <Card>
             <CardHeader>
-              <CardTitle>סיכום נכסים והתחייבויות</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                מסמכים שהועלו
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Real Estate */}
-              {declaration.assets.realEstate.length > 0 && (
-                <div>
-                  <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Building className="h-4 w-4" />
-                    {DECLARATIONS.assetTypes.real_estate}
-                  </div>
-                  {declaration.assets.realEstate.map((asset, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between border-b py-2 last:border-0"
-                    >
-                      <div>
-                        <p className="font-medium">{asset.type}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {asset.location}
-                        </p>
+            <CardContent>
+              {Object.keys(documentsByCategory).length > 0 ? (
+                <div className="space-y-4">
+                  {Object.entries(documentsByCategory).map(([categoryKey, docs]) => {
+                    const categoryLabel = DECLARATIONS.categories?.[categoryKey as keyof typeof DECLARATIONS.categories] || categoryKey
+                    return (
+                      <div key={categoryKey}>
+                        <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                          <FileText className="h-4 w-4" />
+                          {categoryLabel}
+                        </div>
+                        {docs.map((doc) => (
+                          <div
+                            key={doc.id}
+                            className="flex items-center justify-between border-b py-2 last:border-0"
+                          >
+                            <div>
+                              <p className="font-medium">{doc.fileName}</p>
+                              <p className="text-sm text-muted-foreground">{formatDateLong(doc.createdAt)}</p>
+                            </div>
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
+                                <ArrowRight className="h-4 w-4 me-2" />
+                                צפה
+                              </Link>
+                            </Button>
+                          </div>
+                        ))}
                       </div>
-                      <p className="font-medium" dir="ltr">
-                        {formatCurrency(asset.value)}
-                      </p>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
+              ) : (
+                <p className="text-muted-foreground text-center py-6">
+                  עדיין לא הועלו מסמכים להצהרה זו.
+                </p>
               )}
-
-              <Separator />
-
-              {/* Vehicles */}
-              {declaration.assets.vehicles.length > 0 && (
-                <div>
-                  <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Car className="h-4 w-4" />
-                    {DECLARATIONS.assetTypes.vehicle}
-                  </div>
-                  {declaration.assets.vehicles.map((asset, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between border-b py-2 last:border-0"
-                    >
-                      <div>
-                        <p className="font-medium">{asset.type}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {asset.model}
-                        </p>
-                      </div>
-                      <p className="font-medium" dir="ltr">
-                        {formatCurrency(asset.value)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <Separator />
-
-              {/* Bank Accounts */}
-              {declaration.assets.bankAccounts.length > 0 && (
-                <div>
-                  <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <Wallet className="h-4 w-4" />
-                    {DECLARATIONS.assetTypes.bank_account}
-                  </div>
-                  {declaration.assets.bankAccounts.map((account, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between border-b py-2 last:border-0"
-                    >
-                      <p className="font-medium">{account.bank}</p>
-                      <p className="font-medium" dir="ltr">
-                        {formatCurrency(account.balance)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <Separator />
-
-              {/* Investments */}
-              {declaration.assets.investments.length > 0 && (
-                <div>
-                  <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <TrendingUp className="h-4 w-4" />
-                    {DECLARATIONS.assetTypes.investment}
-                  </div>
-                  {declaration.assets.investments.map((investment, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between border-b py-2 last:border-0"
-                    >
-                      <p className="font-medium">{investment.type}</p>
-                      <p className="font-medium" dir="ltr">
-                        {formatCurrency(investment.value)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <Separator />
-
-              {/* Liabilities */}
-              {declaration.liabilities.length > 0 && (
-                <div>
-                  <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                    <CreditCard className="h-4 w-4" />
-                    התחייבויות
-                  </div>
-                  {declaration.liabilities.map((liability, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between border-b py-2 last:border-0"
-                    >
-                      <div>
-                        <p className="font-medium">{liability.type}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {liability.institution}
-                        </p>
-                      </div>
-                      <p className="font-medium text-destructive" dir="ltr">
-                        -{formatCurrency(liability.amount)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <Separator />
-
-              {/* Totals */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="text-muted-foreground">סה&quot;כ נכסים</p>
-                  <p className="font-medium" dir="ltr">
-                    {formatCurrency(totalAssets)}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-muted-foreground">סה&quot;כ התחייבויות</p>
-                  <p className="font-medium text-destructive" dir="ltr">
-                    -{formatCurrency(totalLiabilities)}
-                  </p>
-                </div>
-                <Separator />
-                <div className="flex items-center justify-between">
-                  <p className="font-bold">שווי נטו</p>
-                  <p className="text-lg font-bold text-primary" dir="ltr">
-                    {formatCurrency(totalAssets - totalLiabilities)}
-                  </p>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
+          
+          {/* Portal Link */}
+          {declaration.publicToken && (
+            <Card>
+              <CardHeader>
+                <CardTitle>פורטל לקוח</CardTitle>
+                <CardDescription>שתף קישור זה עם הלקוח</CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-between items-center bg-muted/30 p-3 m-6 mt-0 rounded-lg">
+                <span className="text-sm text-muted-foreground truncate flex-1">
+                  קישור לפורטל
+                </span>
+                <PortalLinkButton token={declaration.publicToken} />
+              </CardContent>
+            </Card>
+          )}
+
           {/* Key Dates */}
           <Card>
             <CardHeader>
@@ -327,19 +213,29 @@ export default async function DeclarationDetailPage({
               <div>
                 <p className="text-sm text-muted-foreground">דדליין להגשה</p>
                 <p className="font-medium" dir="ltr">
-                  {formatDateLong(declaration.deadline)}
+                  {declaration.deadline ? formatDateLong(declaration.deadline) : "-"}
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          {/* Timeline */}
+          {/* Assigned To */}
           <Card>
             <CardHeader>
-              <CardTitle>מצב ההצהרה</CardTitle>
+              <CardTitle>מוקצה ל</CardTitle>
             </CardHeader>
             <CardContent>
-              <Timeline steps={declaration.timeline} />
+              <p className="font-medium">{declaration.assignedTo || "לא הוקצה"}</p>
+            </CardContent>
+          </Card>
+
+          {/* Priority */}
+          <Card>
+            <CardHeader>
+              <CardTitle>עדיפות</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PriorityBadge priority={declaration.priority} />
             </CardContent>
           </Card>
         </div>

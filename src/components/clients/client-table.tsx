@@ -26,9 +26,9 @@ export interface Client {
   lastName: string
   idNumber: string
   phone: string
-  email?: string
-  address?: string
-  notes?: string
+  email: string
+  address: string | null
+  notes: string | null
   activeDeclarations: number
 }
 

@@ -9,6 +9,7 @@ import {
   Settings,
   LogOut,
   Menu,
+  Shield,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -20,7 +21,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { useSession, signOut } from "@/lib/auth-client"
-import { NAV, APP_NAME } from "@/lib/constants/hebrew"
+import { NAV, APP_NAME, ADMIN } from "@/lib/constants/hebrew"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
@@ -103,6 +104,20 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
             {...(onNavClick ? { onClick: onNavClick } : {})}
           />
         ))}
+
+        {/* Admin Link */}
+        {(session?.user as any)?.role === "admin" && (
+          <>
+            <Separator className="my-2" />
+            <NavItem
+              href="/admin"
+              label={ADMIN.title}
+              icon={Shield}
+              isActive={isActive("/admin")}
+              {...(onNavClick ? { onClick: onNavClick } : {})}
+            />
+          </>
+        )}
       </nav>
 
       <Separator />
@@ -142,7 +157,7 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
 
 export function Sidebar() {
   return (
-    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 border-e bg-background">
+    <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:start-0 border-e bg-background">
       <SidebarContent />
     </aside>
   )

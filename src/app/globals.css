@@ -41,8 +41,8 @@
 
 :root {
   /* הצהר-הון Design System - Light Mode */
-  /* Orange primary for light mode, rounded corners 1.3rem, flat design */
-  --radius: 1.3rem;
+  /* Professional Blue primary, rounded corners 0.5rem, clean design */
+  --radius: 0.5rem;
 
   /* Background & Foreground */
   --background: oklch(0.985 0 0);
@@ -56,8 +56,8 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0.015 285);
 
-  /* Primary - Orange */
-  --primary: oklch(0.65 0.2 45);
+  /* Primary - Deep Professional Blue */
+  --primary: oklch(0.45 0.15 250);
   --primary-foreground: oklch(0.985 0 0);
 
   /* Secondary */
@@ -78,10 +78,10 @@
   /* Borders & Inputs */
   --border: oklch(0.9 0.005 285);
   --input: oklch(0.9 0.005 285);
-  --ring: oklch(0.65 0.2 45);
+  --ring: oklch(0.45 0.15 250);
 
   /* Chart Colors */
-  --chart-1: oklch(0.65 0.2 45);
+  --chart-1: oklch(0.45 0.15 250);
   --chart-2: oklch(0.6 0.15 180);
   --chart-3: oklch(0.55 0.12 270);
   --chart-4: oklch(0.7 0.18 90);
@@ -90,12 +90,12 @@
   /* Sidebar */
   --sidebar: oklch(0.98 0 0);
   --sidebar-foreground: oklch(0.145 0.015 285);
-  --sidebar-primary: oklch(0.65 0.2 45);
+  --sidebar-primary: oklch(0.45 0.15 250);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.96 0.005 285);
   --sidebar-accent-foreground: oklch(0.145 0.015 285);
   --sidebar-border: oklch(0.9 0.005 285);
-  --sidebar-ring: oklch(0.65 0.2 45);
+  --sidebar-ring: oklch(0.45 0.15 250);
 }
 
 .dark {

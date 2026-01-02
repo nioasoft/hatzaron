@@ -1,10 +1,28 @@
+"use client"
+
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { ArrowRight } from "lucide-react"
-import { ClientForm } from "@/components/clients/client-form"
+import { toast } from "sonner"
+import { ClientForm, type ClientFormData } from "@/components/clients/client-form"
 import { Button } from "@/components/ui/button"
 import { ACTIONS, CLIENTS } from "@/lib/constants/hebrew"
+import { createClient } from "@/app/dashboard/clients/actions"
 
 export default function NewClientPage() {
+  const router = useRouter()
+
+  const handleSubmit = async (data: ClientFormData) => {
+    try {
+      await createClient(data)
+      toast.success("הלקוח נוצר בהצלחה")
+      router.push("/dashboard/clients")
+    } catch (error) {
+      console.error(error)
+      toast.error("שגיאה ביצירת הלקוח")
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Back button and header */}
@@ -23,7 +41,7 @@ export default function NewClientPage() {
 
       {/* Client Form */}
       <div className="max-w-2xl">
-        <ClientForm />
+        <ClientForm onSubmit={handleSubmit} />
       </div>
     </div>
   )

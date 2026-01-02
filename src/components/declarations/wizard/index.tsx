@@ -1,133 +1,86 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { User, Building, CreditCard, FileUp, CheckCircle } from "lucide-react"
+import { toast } from "sonner"
+import { User, Building, CreditCard, FileUp, CheckCircle, Wallet, Car } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { DECLARATIONS } from "@/lib/constants/hebrew"
 import { cn } from "@/lib/utils"
-import { StepAssets } from "./step-assets"
-import { StepClient } from "./step-client"
-import { StepDocuments } from "./step-documents"
-import { StepLiabilities } from "./step-liabilities"
-import { StepReview } from "./step-review"
+import { StepWelcome } from "./step-welcome"
+import { StepDocuments, DocumentCategory } from "./step-documents"
+import { uploadDocument } from "@/app/portal/actions"
+import { Separator } from "@/components/ui/separator"
+
+// Define the steps and their document requirements
+const DOC_CATEGORIES: Record<string, DocumentCategory> = {
+  general: {
+    id: "general",
+    label: "פרטים אישיים",
+    description: "אנא העלה צילום תעודת זהות וספח",
+    items: [
+      { id: "id_card", label: "תעודת זהות", description: "כולל ספח פתוח" },
+      { id: "partner_id", label: "ת.ז. בן/בת זוג", description: "במידה ויש" },
+    ]
+  },
+  banks: {
+    id: "banks",
+    label: "בנקים ופיננסים",
+    description: "אישורי יתרות ליום ההצהרה מכל הבנקים",
+    items: [
+      { id: "bank_il", label: "עו״ש ופיקדונות (בארץ)", description: "אישור יתרות ליום הקובע" },
+      { id: "bank_foreign", label: "חשבונות בחו״ל", description: "דפי בנק / אישור יתרות" },
+      { id: "investments", label: "תיקי השקעות", description: "דוח יתרות מבית ההשקעות/בנק" },
+    ]
+  },
+  real_estate: {
+    id: "real_estate",
+    label: 'נדל"ן',
+    description: "נכסים בבעלותך (דירות, מגרשים, זכויות)",
+    items: [
+      { id: "tabu", label: "נסח טאבו / אישור זכויות", description: "לכל נכס בנפרד" },
+      { id: "purchase_contract", label: "חוזה רכישה", description: "לנכסים שנרכשו השנה" },
+    ]
+  },
+  liabilities: {
+    id: "liabilities",
+    label: "התחייבויות",
+    description: "משכנתאות והלוואות",
+    items: [
+      { id: "mortgage", label: "יתרת משכנתא", description: "אישור יתרה עדכני מהבנק" },
+      { id: "loans", label: "הלוואות אחרות", description: "אישור יתרה ממוסדות אחרים" },
+    ]
+  },
+  other: {
+    id: "other",
+    label: "רכבים ואחר",
+    description: "רכבים, כספות, ופריטי ערך",
+    items: [
+      { id: "vehicle", label: "רישיון רכב", description: "בתוקף ליום ההצהרה" },
+      { id: "other_assets", label: "נכסים אחרים", description: "מסמכים נוספים" },
+    ]
+  }
+}
 
 const WIZARD_STEPS = [
-  { id: "client", label: DECLARATIONS.wizard.steps.client, icon: User },
-  { id: "assets", label: DECLARATIONS.wizard.steps.assets, icon: Building },
-  {
-    id: "liabilities",
-    label: DECLARATIONS.wizard.steps.liabilities,
-    icon: CreditCard,
-  },
-  { id: "documents", label: DECLARATIONS.wizard.steps.documents, icon: FileUp },
-  { id: "review", label: DECLARATIONS.wizard.steps.review, icon: CheckCircle },
+  { id: "welcome", label: "ברוכים הבאים", icon: User },
+  { id: "general", label: "כללי", icon: FileUp },
+  { id: "banks", label: "בנקים", icon: Wallet },
+  { id: "real_estate", label: 'נדל"ן', icon: Building },
+  { id: "liabilities", label: "התחייבויות", icon: CreditCard },
+  { id: "other", label: "אחר", icon: Car },
+  { id: "review", label: "סיום", icon: CheckCircle },
 ] as const
 
 export type WizardStep = (typeof WIZARD_STEPS)[number]["id"]
 
-export interface ClientData {
-  firstName: string
-  lastName: string
-  idNumber: string
-  phone: string
-  email: string
-  address: string
+export interface DeclarationWizardProps {
+  initialUploadedFiles: Record<string, boolean>
+  declarationId: string
 }
 
-export interface RealEstateAsset {
-  id: string
-  type: string
-  value: number
-  location: string
-  description: string
-}
-
-export interface VehicleAsset {
-  id: string
-  type: string
-  value: number
-  model: string
-  year: string
-  licensePlate: string
-}
-
-export interface BankAccountAsset {
-  id: string
-  bank: string
-  accountNumber: string
-  balance: number
-}
-
-export interface InvestmentAsset {
-  id: string
-  type: string
-  institution: string
-  value: number
-}
-
-export interface Liability {
-  id: string
-  type: string
-  amount: number
-  institution: string
-  description: string
-}
-
-export interface AssetsData {
-  realEstate: RealEstateAsset[]
-  vehicles: VehicleAsset[]
-  bankAccounts: BankAccountAsset[]
-  investments: InvestmentAsset[]
-}
-
-export interface DocumentData {
-  idCard: boolean
-  bankStatements: boolean
-  mortgageStatement: boolean
-  vehicleRegistration: boolean
-  investmentReport: boolean
-  propertyDeed: boolean
-}
-
-export interface WizardData {
-  client: ClientData
-  assets: AssetsData
-  liabilities: Liability[]
-  documents: DocumentData
-}
-
-const initialData: WizardData = {
-  client: {
-    firstName: "",
-    lastName: "",
-    idNumber: "",
-    phone: "",
-    email: "",
-    address: "",
-  },
-  assets: {
-    realEstate: [],
-    vehicles: [],
-    bankAccounts: [],
-    investments: [],
-  },
-  liabilities: [],
-  documents: {
-    idCard: false,
-    bankStatements: false,
-    mortgageStatement: false,
-    vehicleRegistration: false,
-    investmentReport: false,
-    propertyDeed: false,
-  },
-}
-
-export function DeclarationWizard() {
-  const router = useRouter()
-  const [currentStep, setCurrentStep] = useState<WizardStep>("client")
-  const [data, setData] = useState<WizardData>(initialData)
+export function DeclarationWizard({ initialUploadedFiles, declarationId }: DeclarationWizardProps) {
+  const [currentStep, setCurrentStep] = useState<WizardStep>("welcome")
+  const [uploadedFiles, setUploadedFiles] = useState(initialUploadedFiles)
 
   const currentStepIndex = WIZARD_STEPS.findIndex((s) => s.id === currentStep)
 
@@ -146,50 +99,39 @@ export function DeclarationWizard() {
   }
 
   const handleSubmit = () => {
-    // TODO: Submit to API
-    void data
-    router.push("/dashboard/declarations")
+    // In a real app we might update status to 'documents_received' here
+    toast.success("תודה! המסמכים הועברו למשרד")
   }
 
-  const handleSaveDraft = () => {
-    // TODO: Save draft to API
-    void data
-    router.push("/dashboard/declarations")
+  const handleFileUpload = async (fileId: string, file: File) => {
+    const formData = new FormData()
+    formData.append("file", file)
+    
+    try {
+      await uploadDocument(declarationId, fileId, formData)
+      
+      setUploadedFiles(prev => ({
+        ...prev,
+        [fileId]: true
+      }))
+      
+      toast.success("הקובץ הועלה בהצלחה")
+    } catch (error) {
+      console.error(error)
+      toast.error("שגיאה בהעלאת הקובץ")
+    }
   }
 
-  const updateClientData = (clientData: Partial<ClientData>) => {
-    setData((prev) => ({
-      ...prev,
-      client: { ...prev.client, ...clientData },
-    }))
-  }
-
-  const updateAssetsData = (assetsData: Partial<AssetsData>) => {
-    setData((prev) => ({
-      ...prev,
-      assets: { ...prev.assets, ...assetsData },
-    }))
-  }
-
-  const updateLiabilitiesData = (liabilities: Liability[]) => {
-    setData((prev) => ({
-      ...prev,
-      liabilities,
-    }))
-  }
-
-  const updateDocumentsData = (documentsData: Partial<DocumentData>) => {
-    setData((prev) => ({
-      ...prev,
-      documents: { ...prev.documents, ...documentsData },
-    }))
-  }
+  // Calculate progress
+  const totalFiles = Object.values(DOC_CATEGORIES).reduce((sum, cat) => sum + cat.items.length, 0)
+  const uploadedCount = Object.keys(uploadedFiles).length
+  const progressPercent = Math.round((uploadedCount / totalFiles) * 100)
 
   return (
     <div className="space-y-6">
       {/* Step Indicator */}
-      <div className="flex items-center justify-center">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-center overflow-x-auto pb-4 no-scrollbar">
+        <div className="flex items-center gap-2 min-w-max px-2">
           {WIZARD_STEPS.map((step, index) => {
             const Icon = step.icon
             const isActive = step.id === currentStep
@@ -229,10 +171,10 @@ export function DeclarationWizard() {
                 {index < WIZARD_STEPS.length - 1 && (
                   <div
                     className={cn(
-                      "mx-1 h-0.5 w-8",
+                      "mx-1 h-0.5 w-4 sm:w-8 transition-colors",
                       index < currentStepIndex
                         ? "bg-primary"
-                        : "bg-muted-foreground/30"
+                        : "bg-muted-foreground/20"
                     )}
                   />
                 )}
@@ -242,48 +184,104 @@ export function DeclarationWizard() {
         </div>
       </div>
 
-      {/* Step Content */}
-      <Card>
-        <CardContent className="p-6">
-          {currentStep === "client" && (
-            <StepClient data={data.client} onUpdate={updateClientData} />
-          )}
-          {currentStep === "assets" && (
-            <StepAssets data={data.assets} onUpdate={updateAssetsData} />
-          )}
-          {currentStep === "liabilities" && (
-            <StepLiabilities
-              data={data.liabilities}
-              onUpdate={updateLiabilitiesData}
-            />
-          )}
-          {currentStep === "documents" && (
-            <StepDocuments data={data.documents} onUpdate={updateDocumentsData} />
-          )}
-          {currentStep === "review" && <StepReview data={data} />}
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 lg:grid-cols-3 items-start">
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="min-h-[500px]">
+            <CardContent className="p-6">
+              {currentStep === "welcome" && <StepWelcome />}
+              
+              {/* Dynamic Document Steps */}
+              {(currentStep === "general" || 
+                currentStep === "banks" || 
+                currentStep === "real_estate" || 
+                currentStep === "liabilities" || 
+                currentStep === "other") && (
+                <StepDocuments 
+                  category={DOC_CATEGORIES[currentStep]!} 
+                  uploadedFiles={uploadedFiles}
+                  onUpload={handleFileUpload}
+                />
+              )}
 
-      {/* Navigation Buttons */}
-      <div className="flex items-center justify-between">
-        <div>
-          {currentStepIndex > 0 && (
-            <Button variant="outline" onClick={handlePrevious}>
-              {DECLARATIONS.wizard.previous}
-            </Button>
-          )}
+              {currentStep === "review" && (
+                <div className="text-center py-12 space-y-4">
+                  <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto text-green-600 dark:text-green-400">
+                    <CheckCircle className="h-8 w-8" />
+                  </div>
+                  <h2 className="text-2xl font-bold">סיימנו!</h2>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    תודה שהעלית את המסמכים. משרד רואי החשבון יעבור על החומרים ויצור איתך קשר במידה ויהיו חוסרים.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Navigation Buttons */}
+          <div className="flex items-center justify-between">
+            <div>
+              {currentStepIndex > 0 && (
+                <Button variant="outline" onClick={handlePrevious}>
+                  חזרה
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {currentStep === "review" ? (
+                <Button onClick={handleSubmit} className="w-32">
+                  סיום
+                </Button>
+              ) : (
+                <Button onClick={handleNext} className="w-32">
+                  {currentStep === "welcome" ? "בוא נתחיל" : "המשך"}
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={handleSaveDraft}>
-            {DECLARATIONS.wizard.saveDraft}
-          </Button>
-          {currentStep === "review" ? (
-            <Button onClick={handleSubmit}>
-              {DECLARATIONS.wizard.submit}
-            </Button>
-          ) : (
-            <Button onClick={handleNext}>{DECLARATIONS.wizard.next}</Button>
-          )}
+
+        {/* Sidebar Summary */}
+        <div className="space-y-4 lg:sticky lg:top-6 hidden lg:block">
+          <Card className="bg-muted/30 border-none shadow-none">
+            <CardContent className="p-6 space-y-6">
+              <div>
+                <h3 className="font-semibold mb-2">התקדמות</h3>
+                <div className="h-2 bg-muted-foreground/20 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary transition-all duration-500 ease-out"
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 text-end">
+                  {uploadedCount} מתוך {totalFiles} מסמכים הועלו
+                </p>
+              </div>
+
+              <Separator className="bg-muted-foreground/10" />
+
+              <div className="space-y-3 text-sm">
+                <h3 className="font-semibold">סטטוס מסמכים</h3>
+                {Object.values(DOC_CATEGORIES).map(cat => {
+                  const catItems = cat.items.map(i => i.id)
+                  const uploadedInCat = catItems.filter(id => uploadedFiles[id]).length
+                  const totalInCat = catItems.length
+                  const isComplete = uploadedInCat === totalInCat && totalInCat > 0
+                  
+                  return (
+                    <div key={cat.id} className="flex justify-between items-center">
+                      <span className={cn(isComplete && "text-primary font-medium")}>
+                        {cat.label}
+                      </span>
+                      <span className="text-muted-foreground text-xs">
+                        {uploadedInCat}/{totalInCat}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

@@ -29,7 +29,7 @@ const mockRecentDeclarations = [
     clientName: "יוסי כהן",
     createdAt: "2024-12-15",
     deadline: "2025-04-15",
-    status: "pending_documents" as const,
+    status: "waiting_documents" as const,
     netWorth: 2500000,
   },
   {
@@ -37,7 +37,7 @@ const mockRecentDeclarations = [
     clientName: "שרה לוי",
     createdAt: "2024-12-10",
     deadline: "2025-04-10",
-    status: "in_review" as const,
+    status: "reviewing" as const,
     netWorth: 1800000,
   },
   {
@@ -60,8 +60,8 @@ const mockRecentDeclarations = [
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
-  pending_documents: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
-  in_review: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+  waiting_documents: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+  reviewing: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
   submitted: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
   completed: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
 }
@@ -96,22 +96,26 @@ export default async function DashboardPage() {
           title={DASHBOARD.stats.active}
           value={mockStats.active}
           icon={FileText}
+          trend={{ value: 12, isPositive: true }}
         />
         <StatCard
           title={DASHBOARD.stats.pending}
           value={mockStats.pending}
           icon={Clock}
+          trend={{ value: 5, isPositive: false }}
         />
         <StatCard
           title={DASHBOARD.stats.completedMonth}
           value={mockStats.completedMonth}
           icon={CheckCircle}
+          trend={{ value: 20, isPositive: true }}
         />
         <StatCard
           title={DASHBOARD.stats.nearDeadline}
           value={mockStats.nearDeadline}
           icon={AlertTriangle}
           className={mockStats.nearDeadline > 0 ? "border-orange-500/50" : ""}
+          trend={{ value: 10, isPositive: false }}
         />
       </div>
 

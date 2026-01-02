@@ -38,7 +38,7 @@ export function MarketingHeader() {
             aria-label={`${APP_NAME} - דף הבית`}
           >
             <Image
-              src="/hatzaron_logo.png"
+              src="/logo.png"
               alt=""
               width={40}
               height={40}
@@ -86,7 +86,7 @@ export function MarketingHeader() {
                 <div className="flex flex-col gap-6 mt-6">
                   <div className="flex items-center gap-3">
                     <Image
-                      src="/hatzaron_logo.png"
+                      src="/logo.png"
                       alt=""
                       width={32}
                       height={32}

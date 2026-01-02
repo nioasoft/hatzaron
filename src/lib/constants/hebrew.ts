@@ -118,9 +118,15 @@ export const DECLARATIONS = {
   newDeclaration: "צור הצהרה חדשה",
   status: {
     draft: "טיוטה",
-    pending_documents: "ממתין למסמכים",
-    in_review: "בבדיקה",
+    sent: "נשלח",
+    in_progress: "בתהליך",
+    waiting_documents: "ממתין למסמכים",
+    documents_received: "מסמכים התקבלו",
+    reviewing: "בבדיקה",
+    in_preparation: "בהכנה",
+    pending_approval: "ממתין לאישור",
     submitted: "הוגש",
+    waiting: "בהמתנה",
     completed: "הושלם",
   },
   tableHeaders: {
@@ -149,6 +155,13 @@ export const DECLARATIONS = {
     vehicle: "כלי רכב",
     bank_account: "חשבון בנק",
     investment: "השקעות",
+    other: "אחר",
+  },
+  categories: {
+    general: "כללי",
+    bank: "בנקים ופיננסים",
+    real_estate: 'נדל"ן',
+    liabilities: "התחייבויות",
     other: "אחר",
   },
 } as const;

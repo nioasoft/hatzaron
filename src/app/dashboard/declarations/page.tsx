@@ -1,84 +1,18 @@
 import Link from "next/link"
 import { Plus, Search, Filter, FileText } from "lucide-react"
-import {
-  DeclarationTable,
-  type Declaration,
-} from "@/components/declarations/declaration-table"
+import { DeclarationTable } from "@/components/declarations/declaration-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import { DECLARATIONS, ACTIONS } from "@/lib/constants/hebrew"
+import { getDeclarations } from "./actions"
 
-// Mock data - will be replaced with real data from database
-const mockDeclarations: Declaration[] = [
-  {
-    id: "1",
-    clientName: "יוסי כהן",
-    createdAt: "2024-12-15",
-    deadline: "2025-04-15",
-    status: "pending_documents",
-    netWorth: 2500000,
-  },
-  {
-    id: "2",
-    clientName: "שרה לוי",
-    createdAt: "2024-12-10",
-    deadline: "2025-04-10",
-    status: "in_review",
-    netWorth: 1800000,
-  },
-  {
-    id: "3",
-    clientName: "דוד אברהמי",
-    createdAt: "2024-12-05",
-    deadline: "2025-04-05",
-    status: "draft",
-    netWorth: 3200000,
-  },
-  {
-    id: "4",
-    clientName: "רחל מזרחי",
-    createdAt: "2024-11-28",
-    deadline: "2025-03-28",
-    status: "submitted",
-    netWorth: 950000,
-  },
-  {
-    id: "5",
-    clientName: "משה אבוטבול",
-    createdAt: "2024-11-20",
-    deadline: "2025-03-20",
-    status: "completed",
-    netWorth: 4100000,
-  },
-  {
-    id: "6",
-    clientName: "נורית גולדברג",
-    createdAt: "2024-11-15",
-    deadline: "2025-03-15",
-    status: "in_review",
-    netWorth: 2750000,
-  },
-  {
-    id: "7",
-    clientName: "אלי ברקוביץ",
-    createdAt: "2024-11-10",
-    deadline: "2025-03-10",
-    status: "pending_documents",
-    netWorth: 1200000,
-  },
-  {
-    id: "8",
-    clientName: "תמר שוורץ",
-    createdAt: "2024-11-05",
-    deadline: "2025-03-05",
-    status: "completed",
-    netWorth: 5600000,
-  },
-]
+export const dynamic = "force-dynamic"
 
-export default function DeclarationsPage() {
+export default async function DeclarationsPage() {
+  const declarations = await getDeclarations()
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -119,13 +53,13 @@ export default function DeclarationsPage() {
           <CardTitle className="flex items-center justify-between">
             <span>כל ההצהרות</span>
             <span className="text-sm font-normal text-muted-foreground">
-              {mockDeclarations.length} הצהרות
+              {declarations.length} הצהרות
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {mockDeclarations.length > 0 ? (
-            <DeclarationTable declarations={mockDeclarations} />
+          {declarations.length > 0 ? (
+            <DeclarationTable declarations={declarations} />
           ) : (
             <EmptyState
               icon={FileText}

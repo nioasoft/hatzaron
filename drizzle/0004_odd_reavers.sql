@@ -1,0 +1,1 @@
+ALTER TABLE "declaration" ADD COLUMN "data" jsonb DEFAULT '{}'::jsonb;

@@ -19,7 +19,7 @@ interface UploadedFile {
 interface DocumentUploaderProps {
   documentType: string
   label: string
-  description?: string
+  description?: string | undefined
   accept?: string
   maxSize?: number // in MB
   onUpload?: (file: File) => Promise<void>

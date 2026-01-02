@@ -1,10 +1,13 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
-import { DeclarationWizard } from "@/components/declarations/wizard"
 import { Button } from "@/components/ui/button"
 import { DECLARATIONS, ACTIONS } from "@/lib/constants/hebrew"
+import { CreateDeclarationForm } from "@/components/declarations/create-declaration-form"
+import { getClients } from "@/app/dashboard/clients/actions"
 
-export default function NewDeclarationPage() {
+export default async function NewDeclarationPage() {
+  const clients = await getClients()
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -23,8 +26,10 @@ export default function NewDeclarationPage() {
         </div>
       </div>
 
-      {/* Wizard */}
-      <DeclarationWizard />
+      {/* Form */}
+      <div className="max-w-2xl">
+        <CreateDeclarationForm clients={clients} />
+      </div>
     </div>
   )
 }
