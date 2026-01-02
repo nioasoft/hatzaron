@@ -43,6 +43,13 @@
       "when": 1767481200000,
       "tag": "0005_add_session_impersonated_by",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1767481500000,
+      "tag": "0006_add_missing_user_columns",
+      "breakpoints": true
     }
   ]
 }
