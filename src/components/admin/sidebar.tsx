@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Building2,
-  Settings,
   LogOut,
   Menu,
   Shield,
@@ -26,7 +25,8 @@ import { cn } from "@/lib/utils"
 const ADMIN_NAV_ITEMS = [
   { href: "/admin", label: ADMIN.nav.dashboard, icon: LayoutDashboard, exact: true },
   { href: "/admin/firms", label: ADMIN.nav.firms, icon: Building2 },
-  { href: "/admin/settings", label: ADMIN.nav.settings, icon: Settings },
+  // TODO: Add admin settings page
+  // { href: "/admin/settings", label: ADMIN.nav.settings, icon: Settings },
 ]
 
 function NavItem({
