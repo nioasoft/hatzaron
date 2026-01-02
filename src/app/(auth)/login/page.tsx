@@ -16,7 +16,13 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ reset?: string }>
 }) {
-  const session = await auth.api.getSession({ headers: await headers() })
+  let session = null
+  try {
+    session = await auth.api.getSession({ headers: await headers() })
+  } catch (error) {
+    // Log error but continue - user is not logged in
+    console.error("Session check failed:", error)
+  }
 
   if (session) {
     redirect("/dashboard")
