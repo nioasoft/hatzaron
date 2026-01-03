@@ -1,250 +1,134 @@
-# Agentic Coding Boilerplate - AI Assistant Guidelines
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-This is a Next.js 16 boilerplate for building AI-powered applications with authentication, database, and modern UI components.
+**הצהר-הון** (Hatzaron) is a Hebrew-language capital declarations (הצהרות הון) management platform for Israeli accountants. It enables accounting firms to manage client declarations, track document uploads, monitor status workflows, and communicate with clients through a branded portal.
 
 ### Tech Stack
 
-- **Framework**: Next.js 16 with App Router, React 19, TypeScript
-- **AI Integration**: Vercel AI SDK 5 + OpenRouter (access to 100+ AI models)
-- **Authentication**: BetterAuth with Email/Password
+- **Framework**: Next.js 16 (App Router), React 19, TypeScript
+- **Authentication**: BetterAuth with admin plugin (impersonation, roles)
 - **Database**: PostgreSQL with Drizzle ORM
-- **UI**: shadcn/ui components with Tailwind CSS 4
-- **Styling**: Tailwind CSS with dark mode support (next-themes)
+- **UI**: shadcn/ui, Tailwind CSS 4, RTL Hebrew interface
+- **AI Integration**: Vercel AI SDK 5 + OpenRouter (optional chat feature)
+- **File Storage**: Local dev / Vercel Blob production
 
-## AI Integration with OpenRouter
-
-### Key Points
-
-- This project uses **OpenRouter** as the AI provider, NOT direct OpenAI
-- OpenRouter provides access to 100+ AI models through a single unified API
-- Default model: `openai/gpt-5-mini` (configurable via `OPENROUTER_MODEL` env var)
-- Users browse models at: https://openrouter.ai/models
-- Users get API keys from: https://openrouter.ai/settings/keys
-
-### AI Implementation Files
-
-- `src/app/api/chat/route.ts` - Chat API endpoint using OpenRouter
-- Package: `@openrouter/ai-sdk-provider` (not `@ai-sdk/openai`)
-- Import: `import { openrouter } from "@openrouter/ai-sdk-provider"`
-
-## Project Structure
-
-```
-src/
-├── app/                          # Next.js App Router
-│   ├── (auth)/                  # Auth route group
-│   │   ├── login/               # Login page
-│   │   ├── register/            # Registration page
-│   │   ├── forgot-password/     # Forgot password page
-│   │   └── reset-password/      # Reset password page
-│   ├── api/
-│   │   ├── auth/[...all]/       # Better Auth catch-all route
-│   │   ├── chat/route.ts        # AI chat endpoint (OpenRouter)
-│   │   └── diagnostics/         # System diagnostics
-│   ├── chat/page.tsx            # AI chat interface (protected)
-│   ├── dashboard/page.tsx       # User dashboard (protected)
-│   ├── profile/page.tsx         # User profile (protected)
-│   ├── page.tsx                 # Home/landing page
-│   └── layout.tsx               # Root layout
-├── components/
-│   ├── auth/                    # Authentication components
-│   │   ├── sign-in-button.tsx   # Sign in form
-│   │   ├── sign-up-form.tsx     # Sign up form
-│   │   ├── forgot-password-form.tsx
-│   │   ├── reset-password-form.tsx
-│   │   ├── sign-out-button.tsx
-│   │   └── user-profile.tsx
-│   ├── ui/                      # shadcn/ui components
-│   │   ├── button.tsx
-│   │   ├── card.tsx
-│   │   ├── dialog.tsx
-│   │   ├── dropdown-menu.tsx
-│   │   ├── avatar.tsx
-│   │   ├── badge.tsx
-│   │   ├── separator.tsx
-│   │   ├── mode-toggle.tsx      # Dark/light mode toggle
-│   │   └── github-stars.tsx
-│   ├── site-header.tsx          # Main navigation header
-│   ├── site-footer.tsx          # Footer component
-│   ├── theme-provider.tsx       # Dark mode provider
-│   ├── setup-checklist.tsx      # Setup guide component
-│   └── starter-prompt-modal.tsx # Starter prompts modal
-└── lib/
-    ├── auth.ts                  # Better Auth server config
-    ├── auth-client.ts           # Better Auth client hooks
-    ├── db.ts                    # Database connection
-    ├── schema.ts                # Drizzle schema (users, sessions, etc.)
-    ├── storage.ts               # File storage abstraction (Vercel Blob / local)
-    └── utils.ts                 # Utility functions (cn, etc.)
-```
-
-## Environment Variables
-
-Required environment variables (see `env.example`):
-
-```env
-# Database
-POSTGRES_URL=postgresql://user:password@localhost:5432/db_name
-
-# Better Auth
-BETTER_AUTH_SECRET=32-char-random-string
-
-# AI via OpenRouter
-OPENROUTER_API_KEY=sk-or-v1-your-key
-OPENROUTER_MODEL=openai/gpt-5-mini  # or any model from openrouter.ai/models
-
-# App
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-
-# File Storage (optional)
-BLOB_READ_WRITE_TOKEN=  # Leave empty for local dev, set for Vercel Blob in production
-```
-
-## Available Scripts
+## Commands
 
 ```bash
-npm run dev          # Start dev server (DON'T run this yourself - ask user)
-npm run build        # Build for production (runs db:migrate first)
-npm run build:ci     # Build without database (for CI/CD pipelines)
-npm run start        # Start production server
-npm run lint         # Run ESLint (ALWAYS run after changes)
-npm run typecheck    # TypeScript type checking (ALWAYS run after changes)
-npm run db:generate  # Generate database migrations
-npm run db:migrate   # Run database migrations
-npm run db:push      # Push schema changes to database
-npm run db:studio    # Open Drizzle Studio (database GUI)
-npm run db:dev       # Push schema for development
-npm run db:reset     # Reset database (drop all tables)
+pnpm run dev          # Start dev server (DON'T run this - ask user to provide output)
+pnpm run lint         # ESLint - ALWAYS run after changes
+pnpm run typecheck    # TypeScript check - ALWAYS run after changes
+pnpm run check        # Run both lint and typecheck
+pnpm run db:generate  # Generate migrations after schema changes
+pnpm run db:migrate   # Apply migrations
+pnpm run db:push      # Push schema directly (dev only)
+pnpm run db:studio    # Drizzle Studio GUI
 ```
 
-## Documentation Files
+## Architecture
 
-The project includes technical documentation in `docs/`:
+### Multi-Tenant Structure
 
-- `docs/technical/ai/streaming.md` - AI streaming implementation guide
-- `docs/technical/ai/structured-data.md` - Structured data extraction
-- `docs/technical/react-markdown.md` - Markdown rendering guide
-- `docs/technical/betterauth/polar.md` - Polar payment integration
-- `docs/business/starter-prompt.md` - Business context for AI prompts
+```
+Firm (משרד רו"ח)
+├── Users (firm_admin, firm_employee)
+├── Clients (לקוחות)
+│   └── Declarations (הצהרות הון)
+│       ├── Documents (מסמכים)
+│       ├── StatusHistory (היסטוריית סטטוסים)
+│       └── Communications (תקשורת)
+```
 
-## Guidelines for AI Assistants
+### User Roles
 
-### CRITICAL RULES
+- `admin` - Super admin with firm management and impersonation
+- `firm_admin` - Firm owner with full access to their firm
+- `firm_employee` - Accountant with assigned declarations
+- `user` - Default role
 
-1. **ALWAYS run lint and typecheck** after completing changes:
+### Key Route Groups
 
-   ```bash
-   npm run lint && npm run typecheck
-   ```
+- `/(marketing)` - Public landing, pricing, FAQ pages
+- `/(auth)` - Login, register, password reset
+- `/dashboard` - Firm dashboard (clients, declarations, settings)
+- `/portal/[token]` - Public client portal for document uploads
+- `/admin` - Super admin panel for managing firms
 
-2. **NEVER start the dev server yourself**
+### Declaration Status Flow
 
-   - If you need dev server output, ask the user to provide it
-   - Don't run `npm run dev` or `pnpm dev`
+`draft` → `sent` → `in_progress` → `waiting_documents` → `documents_received` → `reviewing` → `in_preparation` → `pending_approval` → `submitted`
 
-3. **Use OpenRouter, NOT OpenAI directly**
+Portal access automatically transitions: `sent` → `in_progress`
+Client "done uploading" transitions: `in_progress` → `documents_received`
 
-   - Import from `@openrouter/ai-sdk-provider`
-   - Use `openrouter()` function, not `openai()`
-   - Model names follow OpenRouter format: `provider/model-name`
+## Key Files
 
-4. **Styling Guidelines**
+- `src/lib/schema.ts` - Database schema (firm, user, client, declaration, document, etc.)
+- `src/lib/constants/hebrew.ts` - All Hebrew UI strings (use these, don't hardcode text)
+- `src/lib/session.ts` - `requireAuth()`, `getOptionalSession()` helpers
+- `src/lib/admin.ts` - `isAdmin()`, `requireAdmin()`, `getImpersonationState()`
+- `src/lib/auth.ts` - BetterAuth config with admin plugin
 
-   - Stick to standard Tailwind CSS utility classes
-   - Use shadcn/ui color tokens (e.g., `bg-background`, `text-foreground`)
-   - Avoid custom colors unless explicitly requested
-   - Support dark mode with appropriate Tailwind classes
+## Guidelines
 
-5. **Authentication**
+### Hebrew/RTL
 
-   - Server-side: Import from `@/lib/auth` (Better Auth instance)
-   - Client-side: Import hooks from `@/lib/auth-client`
-   - Protected routes should check session in Server Components
-   - Use existing auth components from `src/components/auth/`
+- All user-facing text is in Hebrew - import from `src/lib/constants/hebrew.ts`
+- Layout is RTL - use `space-x-reverse`, `text-right`, etc.
+- Date formatting uses `he` locale with date-fns
 
-6. **Database Operations**
+### Authentication Patterns
 
-   - Use Drizzle ORM (imported from `@/lib/db`)
-   - Schema is defined in `@/lib/schema`
-   - Always run migrations after schema changes
-   - PostgreSQL is the database (not SQLite, MySQL, etc.)
+```typescript
+// Server Component - require auth
+import { requireAuth } from "@/lib/session"
+const session = await requireAuth() // redirects if not logged in
 
-7. **File Storage**
+// Server Component - optional auth
+import { getOptionalSession } from "@/lib/session"
+const session = await getOptionalSession()
 
-   - Use the storage abstraction from `@/lib/storage`
-   - Automatically uses local storage (dev) or Vercel Blob (production)
-   - Import: `import { upload, deleteFile } from "@/lib/storage"`
-   - Example: `const result = await upload(buffer, "avatar.png", "avatars")`
-   - Storage switches based on `BLOB_READ_WRITE_TOKEN` environment variable
+// Client Component
+import { useSession } from "@/lib/auth-client"
+const { data: session } = useSession()
 
-8. **Component Creation**
+// Admin check
+import { isAdmin, requireAdmin } from "@/lib/admin"
+if (await isAdmin()) { /* show admin features */ }
+```
 
-   - Use existing shadcn/ui components when possible
-   - Follow the established patterns in `src/components/ui/`
-   - Support both light and dark modes
-   - Use TypeScript with proper types
+### Database Queries
 
-9. **API Routes**
-   - Follow Next.js 16 App Router conventions
-   - Use Route Handlers (route.ts files)
-   - Return Response objects
-   - Handle errors appropriately
+Declarations and clients are always scoped by `firmId`:
 
-### Best Practices
+```typescript
+import { db } from "@/lib/db"
+import { declaration, client } from "@/lib/schema"
+import { eq, and } from "drizzle-orm"
 
-- Read existing code patterns before creating new features
-- Maintain consistency with established file structure
-- Use the documentation files when implementing related features
-- Test changes with lint and typecheck before considering complete
-- When modifying AI functionality, refer to `docs/technical/ai/` guides
+// Always filter by firmId
+const declarations = await db
+  .select()
+  .from(declaration)
+  .where(eq(declaration.firmId, session.user.firmId))
+```
 
-### Common Tasks
+### Server Actions
 
-**Adding a new page:**
+Use `"use server"` actions for mutations. Located in component files or dedicated action files.
 
-1. Create in `src/app/[route]/page.tsx`
-2. Use Server Components by default
-3. Add to navigation if needed
+### Status Changes
 
-**Adding a new API route:**
+Always log to `declarationStatusHistory` table when changing declaration status.
 
-1. Create in `src/app/api/[route]/route.ts`
-2. Export HTTP method handlers (GET, POST, etc.)
-3. Use proper TypeScript types
+## Specs & Feature Development
 
-**Adding authentication to a page:**
+Feature specs are stored in `specs/` with requirements and implementation plans. Use Claude Code commands:
 
-1. Import auth instance: `import { auth } from "@/lib/auth"`
-2. Get session: `const session = await auth.api.getSession({ headers: await headers() })`
-3. Check session and redirect if needed
-
-**Working with the database:**
-
-1. Update schema in `src/lib/schema.ts`
-2. Generate migration: `npm run db:generate`
-3. Apply migration: `npm run db:migrate`
-4. Import `db` from `@/lib/db` to query
-
-**Modifying AI chat:**
-
-1. Backend: `src/app/api/chat/route.ts`
-2. Frontend: `src/app/chat/page.tsx`
-3. Reference streaming docs: `docs/technical/ai/streaming.md`
-4. Remember to use OpenRouter, not direct OpenAI
-
-**Working with file storage:**
-
-1. Import storage functions: `import { upload, deleteFile } from "@/lib/storage"`
-2. Upload files: `const result = await upload(fileBuffer, "filename.png", "folder")`
-3. Delete files: `await deleteFile(result.url)`
-4. Storage automatically uses local filesystem in dev, Vercel Blob in production
-5. Local files are saved to `public/uploads/` and served at `/uploads/`
-
-## Package Manager
-
-This project uses **pnpm** (see `pnpm-lock.yaml`). When running commands:
-
-- Use `pnpm` instead of `npm` when possible
-- Scripts defined in package.json work with `pnpm run [script]`
+- `/create-spec` - Create new feature specification
+- `/publish-to-github` - Publish to GitHub Issues/Projects
+- `/continue-feature` - Implement next task from spec
+- `/checkpoint` - Create detailed checkpoint commit
