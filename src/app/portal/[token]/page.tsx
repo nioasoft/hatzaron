@@ -18,6 +18,7 @@ export default async function PortalPage({ params }: PortalPageProps) {
     <DeclarationWizard
       initialUploadedFiles={data.uploadedFiles}
       declarationId={data.declaration.id}
+      publicToken={data.declaration.publicToken}
     />
   )
 }

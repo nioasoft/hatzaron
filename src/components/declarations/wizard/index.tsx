@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { StepWelcome } from "./step-welcome"
 import { StepDocuments, DocumentCategory } from "./step-documents"
-import { uploadDocument } from "@/app/portal/actions"
+import { uploadDocument, markDocumentsComplete } from "@/app/portal/actions"
 import { Separator } from "@/components/ui/separator"
 
 // Define the steps and their document requirements
@@ -76,11 +76,13 @@ export type WizardStep = (typeof WIZARD_STEPS)[number]["id"]
 export interface DeclarationWizardProps {
   initialUploadedFiles: Record<string, boolean>
   declarationId: string
+  publicToken: string
 }
 
-export function DeclarationWizard({ initialUploadedFiles, declarationId }: DeclarationWizardProps) {
+export function DeclarationWizard({ initialUploadedFiles, declarationId, publicToken }: DeclarationWizardProps) {
   const [currentStep, setCurrentStep] = useState<WizardStep>("welcome")
   const [uploadedFiles, setUploadedFiles] = useState(initialUploadedFiles)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const currentStepIndex = WIZARD_STEPS.findIndex((s) => s.id === currentStep)
 
@@ -98,9 +100,23 @@ export function DeclarationWizard({ initialUploadedFiles, declarationId }: Decla
     }
   }
 
-  const handleSubmit = () => {
-    // In a real app we might update status to 'documents_received' here
-    toast.success("תודה! המסמכים הועברו למשרד")
+  const handleSubmit = async () => {
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+    try {
+      const result = await markDocumentsComplete(declarationId, publicToken)
+      if (result.success) {
+        toast.success("תודה! המסמכים הועברו למשרד")
+      } else {
+        toast.error(result.error || "שגיאה בשליחת המסמכים")
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error("שגיאה בשליחת המסמכים")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleFileUpload = async (fileId: string, file: File) => {
@@ -229,8 +245,8 @@ export function DeclarationWizard({ initialUploadedFiles, declarationId }: Decla
             </div>
             <div className="flex items-center gap-2">
               {currentStep === "review" ? (
-                <Button onClick={handleSubmit} className="w-32">
-                  סיום
+                <Button onClick={handleSubmit} disabled={isSubmitting} className="w-32">
+                  {isSubmitting ? "שולח..." : "סיום"}
                 </Button>
               ) : (
                 <Button onClick={handleNext} className="w-32">
