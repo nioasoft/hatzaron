@@ -16,7 +16,7 @@ import { sendDeclarationLink, sendReminderEmail } from "@/lib/email"
 export type DeclarationStatus =
   | "draft" | "sent" | "in_progress" | "waiting_documents"
   | "documents_received" | "reviewing" | "in_preparation"
-  | "pending_approval" | "submitted" | "waiting"
+  | "pending_approval" | "submitted" | "waiting" | "completed"
 
 export type StatusHistoryEntry = {
   id: string

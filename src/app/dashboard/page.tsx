@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth"
 import { DASHBOARD, DECLARATIONS } from "@/lib/constants/hebrew"
-import { formatDate, formatCurrency } from "@/lib/utils"
+import { formatDate } from "@/lib/utils"
 
 // Mock data - will be replaced with real data from database
 const mockStats = {
@@ -144,9 +144,6 @@ export default async function DashboardPage() {
                   <th className="pb-3 text-start font-medium">
                     {DECLARATIONS.tableHeaders.status}
                   </th>
-                  <th className="pb-3 text-start font-medium">
-                    {DECLARATIONS.tableHeaders.netWorth}
-                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -176,9 +173,6 @@ export default async function DashboardPage() {
                       >
                         {DECLARATIONS.status[declaration.status]}
                       </Badge>
-                    </td>
-                    <td className="py-3 font-medium" dir="ltr">
-                      {formatCurrency(declaration.netWorth)}
                     </td>
                   </tr>
                 ))}

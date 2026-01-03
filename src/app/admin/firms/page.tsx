@@ -7,7 +7,7 @@ import { user } from "@/lib/schema"
 
 export default async function FirmsPage() {
   // Query all firms (non-admin users)
-  const firms = await db
+  const firmsData = await db
     .select({
       id: user.id,
       name: user.name,
@@ -18,6 +18,12 @@ export default async function FirmsPage() {
     .from(user)
     .where(ne(user.role, "admin"))
     .orderBy(desc(user.createdAt))
+
+  // Ensure banned is always boolean (not null)
+  const firms = firmsData.map(f => ({
+    ...f,
+    banned: f.banned ?? false
+  }))
 
   return (
     <div className="space-y-6">

@@ -1,14 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { Building2, MoreHorizontal, Eye, UserX, UserCheck, LogIn } from "lucide-react"
+import { Building2, MoreHorizontal, Eye } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { PLAN_COLORS, PLAN_NAMES, getMockPlan } from "@/lib/constants/admin"
@@ -20,7 +19,7 @@ interface Firm {
   id: string
   name: string
   email: string
-  banned: boolean | null
+  banned: boolean
   createdAt: Date
 }
 
@@ -108,24 +107,6 @@ export function FirmTable({ firms }: FirmTableProps) {
                           <Eye className="h-4 w-4 me-2" />
                           {ADMIN.firms.actions.view}
                         </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <LogIn className="h-4 w-4 me-2" />
-                        {ADMIN.firms.actions.impersonate}
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem>
-                        {firm.banned ? (
-                          <>
-                            <UserCheck className="h-4 w-4 me-2" />
-                            {ADMIN.firms.actions.activate}
-                          </>
-                        ) : (
-                          <>
-                            <UserX className="h-4 w-4 me-2" />
-                            {ADMIN.firms.actions.suspend}
-                          </>
-                        )}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
