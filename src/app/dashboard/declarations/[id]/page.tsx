@@ -1,3 +1,4 @@
+import { headers } from "next/headers"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import {
@@ -8,14 +9,24 @@ import {
   Clock,
   AlertCircle,
 } from "lucide-react"
+
+import { getDeclarationDetails, getFirmAccountants } from "@/app/dashboard/declarations/actions"
+import { AssignAccountantSelect } from "@/components/declarations/assign-accountant-select"
+import { CommunicationHistoryCard } from "@/components/declarations/communication-history-card"
 import { DeclarationStatusBadge } from "@/components/declarations/declaration-status"
+import { LogCommunicationDialog } from "@/components/declarations/log-communication-dialog"
+import { PenaltyManagementCard } from "@/components/declarations/penalty-management-card"
+import { PortalLinkButton } from "@/components/declarations/portal-link-button"
+import { SendReminderDialog } from "@/components/declarations/send-reminder-dialog"
+import { StatusChangeDialog } from "@/components/declarations/status-change-dialog"
+import { StatusHistoryTimeline } from "@/components/declarations/status-history-timeline"
+import { WhatsAppReminderButton } from "@/components/declarations/whatsapp-reminder-button"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { auth } from "@/lib/auth"
 import { DECLARATIONS, ACTIONS } from "@/lib/constants/hebrew"
 import { formatDateLong } from "@/lib/utils"
-import { getDeclarationDetails } from "../actions"
-import { Badge } from "@/components/ui/badge"
-import { PortalLinkButton } from "@/components/declarations/portal-link-button"
 
 interface DeclarationDetailPageParams {
   id: string
@@ -39,7 +50,17 @@ export default async function DeclarationDetailPage({
   params: Promise<DeclarationDetailPageParams>
 }) {
   const { id } = await params
-  const declaration = await getDeclarationDetails(id)
+
+  // Get session and check if user is admin
+  const session = await auth.api.getSession({ headers: await headers() })
+  const userRole = (session?.user as { role?: string })?.role
+  const isAdmin = userRole === "firm_admin" || userRole === "super_admin"
+
+  // Fetch declaration and accountants in parallel
+  const [declaration, accountants] = await Promise.all([
+    getDeclarationDetails(id),
+    getFirmAccountants(),
+  ])
 
   if (!declaration) {
     notFound()
@@ -58,6 +79,10 @@ export default async function DeclarationDetailPage({
     documentsByCategory[doc.category]!.push(doc)
   })
 
+  // Generate portal URL for reminder dialog
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+  const portalUrl = declaration.publicToken ? `${appUrl}/portal/${declaration.publicToken}` : null
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -72,24 +97,46 @@ export default async function DeclarationDetailPage({
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold">{declaration.client.name}</h1>
-              <DeclarationStatusBadge status={declaration.status as any} /> {/* Cast needed for now as status type mismatch */}
+              {/* Status badge wrapped in StatusChangeDialog */}
+              <StatusChangeDialog
+                declarationId={declaration.id}
+                currentStatus={declaration.status}
+              >
+                <button type="button" className="cursor-pointer">
+                  <DeclarationStatusBadge status={declaration.status as any} />
+                </button>
+              </StatusChangeDialog>
             </div>
             <p className="text-muted-foreground">
-              הצהרת הון - נוצרה ב-{formatDateLong(declaration.createdAt)}
+              הצהרת הון {declaration.year} - נוצרה ב-{formatDateLong(declaration.createdAt)}
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button asChild>
             <Link href={`/dashboard/declarations/${declaration.id}/edit`}>
               <Edit className="h-4 w-4 me-2" />
               {ACTIONS.edit}
             </Link>
           </Button>
-          <Button variant="outline" onClick={() => alert("TODO: Send reminder email/SMS")}>
-            <Clock className="h-4 w-4 me-2" />
-            שלח תזכורת
-          </Button>
+          {/* Log Communication Dialog */}
+          <LogCommunicationDialog declarationId={declaration.id} />
+          {/* WhatsApp Reminder Button */}
+          <WhatsAppReminderButton
+            declarationId={declaration.id}
+            clientPhone={declaration.client.phone}
+            clientName={declaration.client.name}
+            year={declaration.year}
+            publicToken={declaration.publicToken}
+          />
+          {/* Send Email Reminder Dialog */}
+          <SendReminderDialog
+            declarationId={declaration.id}
+            clientName={declaration.client.name}
+            clientEmail={declaration.client.email}
+            year={declaration.year}
+            portalUrl={portalUrl}
+          />
         </div>
       </div>
 
@@ -177,11 +224,14 @@ export default async function DeclarationDetailPage({
               )}
             </CardContent>
           </Card>
+
+          {/* Penalty Management Card - shown conditionally based on late submission */}
+          <PenaltyManagementCard declarationId={declaration.id} />
         </div>
 
         {/* Sidebar */}
         <div className="space-y-6">
-          
+
           {/* Portal Link */}
           {declaration.publicToken && (
             <Card>
@@ -219,13 +269,18 @@ export default async function DeclarationDetailPage({
             </CardContent>
           </Card>
 
-          {/* Assigned To */}
+          {/* Assigned Accountant */}
           <Card>
             <CardHeader>
-              <CardTitle>מוקצה ל</CardTitle>
+              <CardTitle>רו״ח אחראי</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="font-medium">{declaration.assignedTo || "לא הוקצה"}</p>
+              <AssignAccountantSelect
+                declarationId={declaration.id}
+                currentAssignee={declaration.assignedTo}
+                accountants={accountants}
+                isAdmin={isAdmin}
+              />
             </CardContent>
           </Card>
 
@@ -238,6 +293,12 @@ export default async function DeclarationDetailPage({
               <PriorityBadge priority={declaration.priority} />
             </CardContent>
           </Card>
+
+          {/* Status History Timeline */}
+          <StatusHistoryTimeline declarationId={declaration.id} />
+
+          {/* Communication History */}
+          <CommunicationHistoryCard declarationId={declaration.id} />
         </div>
       </div>
     </div>

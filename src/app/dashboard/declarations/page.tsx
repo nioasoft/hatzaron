@@ -1,17 +1,56 @@
+import { headers } from "next/headers"
 import Link from "next/link"
-import { Plus, Search, Filter, FileText } from "lucide-react"
+import { Plus, FileText } from "lucide-react"
+
+import {
+  getDeclarationsWithFilters,
+  getDeclarationStats,
+  getFirmAccountants,
+  type DeclarationFilters as FiltersType,
+} from "@/app/dashboard/declarations/actions"
+import { DeclarationFilters } from "@/components/declarations/declaration-filters"
+import { DeclarationStatsCards } from "@/components/declarations/declaration-stats-cards"
 import { DeclarationTable } from "@/components/declarations/declaration-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
-import { Input } from "@/components/ui/input"
-import { DECLARATIONS, ACTIONS } from "@/lib/constants/hebrew"
-import { getDeclarations } from "./actions"
+import { auth } from "@/lib/auth"
+import { DECLARATIONS } from "@/lib/constants/hebrew"
 
 export const dynamic = "force-dynamic"
 
-export default async function DeclarationsPage() {
-  const declarations = await getDeclarations()
+interface PageProps {
+  searchParams: Promise<{
+    search?: string
+    status?: string
+    year?: string
+    priority?: string
+    assignedTo?: string
+  }>
+}
+
+export default async function DeclarationsPage({ searchParams }: PageProps) {
+  const resolvedParams = await searchParams
+
+  // Get session and check if user is admin
+  const session = await auth.api.getSession({ headers: await headers() })
+  const userRole = (session?.user as { role?: string })?.role
+  const isAdmin = userRole === "firm_admin" || userRole === "super_admin"
+
+  // Build filters from search params
+  const filters: FiltersType = {}
+  if (resolvedParams.search) filters.search = resolvedParams.search
+  if (resolvedParams.status && resolvedParams.status !== "all") filters.status = resolvedParams.status
+  if (resolvedParams.year && resolvedParams.year !== "all") filters.taxYear = parseInt(resolvedParams.year)
+  if (resolvedParams.priority && resolvedParams.priority !== "all") filters.priority = resolvedParams.priority
+  if (resolvedParams.assignedTo && resolvedParams.assignedTo !== "all") filters.assignedTo = resolvedParams.assignedTo
+
+  // Fetch declarations, stats, and accountants in parallel
+  const [declarations, stats, accountants] = await Promise.all([
+    getDeclarationsWithFilters(filters),
+    getDeclarationStats(),
+    getFirmAccountants(),
+  ])
 
   return (
     <div className="space-y-6">
@@ -31,21 +70,14 @@ export default async function DeclarationsPage() {
         </Button>
       </div>
 
+      {/* Stats Cards */}
+      <DeclarationStatsCards stats={stats} />
+
       {/* Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row" role="search">
-        <div className="relative flex-1">
-          <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <Input
-            placeholder={`${ACTIONS.search}...`}
-            className="ps-9"
-            aria-label="חיפוש הצהרות"
-          />
-        </div>
-        <Button variant="outline">
-          <Filter className="h-4 w-4 me-2" aria-hidden="true" />
-          {ACTIONS.filter}
-        </Button>
-      </div>
+      <DeclarationFilters
+        accountants={accountants}
+        isAdmin={isAdmin}
+      />
 
       {/* Declarations Table */}
       <Card>
@@ -59,7 +91,12 @@ export default async function DeclarationsPage() {
         </CardHeader>
         <CardContent>
           {declarations.length > 0 ? (
-            <DeclarationTable declarations={declarations} />
+            <DeclarationTable
+              declarations={declarations}
+              accountants={accountants}
+              isAdmin={isAdmin}
+              enhanced={true}
+            />
           ) : (
             <EmptyState
               icon={FileText}
