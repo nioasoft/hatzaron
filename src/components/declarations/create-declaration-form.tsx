@@ -3,71 +3,207 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { useDebouncedCallback } from "use-debounce"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { Loader2, Search, UserCheck, UserPlus } from "lucide-react"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { createDeclaration } from "@/app/dashboard/declarations/actions"
-import { Client } from "@/app/dashboard/clients/actions"
+  findClientByIdNumber,
+  createDeclarationWithClient,
+} from "@/app/dashboard/declarations/actions"
+import { CLIENTS, VALIDATION } from "@/lib/constants/hebrew"
 
-interface CreateDeclarationFormProps {
-  clients: Client[]
-}
+type ClientStatus = "idle" | "searching" | "found" | "new"
 
 interface FormData {
-  clientId: string
-  year: string | number
+  // Client fields
+  firstName: string
+  lastName: string
+  idNumber: string
+  phone: string
+  email: string
+  address: string
+  clientNotes: string
+  // Declaration fields
+  year: number
   declarationDate: string
   taxAuthorityDueDate: string
   internalDueDate: string
   subject: string
-  notes: string
+  declarationNotes: string
 }
 
-export function CreateDeclarationForm({ clients }: CreateDeclarationFormProps) {
+interface FormErrors {
+  [key: string]: string
+}
+
+export function CreateDeclarationForm() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [clientStatus, setClientStatus] = useState<ClientStatus>("idle")
+  const [errors, setErrors] = useState<FormErrors>({})
+
   const [formData, setFormData] = useState<FormData>({
-    clientId: "",
+    // Client fields
+    firstName: "",
+    lastName: "",
+    idNumber: "",
+    phone: "",
+    email: "",
+    address: "",
+    clientNotes: "",
+    // Declaration fields
     year: new Date().getFullYear(),
     declarationDate: new Date().toISOString().split("T")[0]!,
     taxAuthorityDueDate: "",
     internalDueDate: "",
     subject: "הצהרת הון",
-    notes: "",
+    declarationNotes: "",
   })
+
+  // Debounced search for client by ID number
+  const debouncedSearch = useDebouncedCallback(async (idNumber: string) => {
+    const cleanId = idNumber.replace(/\D/g, "")
+    if (cleanId.length !== 9) {
+      setClientStatus("idle")
+      return
+    }
+
+    setClientStatus("searching")
+    const client = await findClientByIdNumber(cleanId)
+
+    if (client) {
+      setClientStatus("found")
+      // Auto-fill form fields
+      setFormData((prev) => ({
+        ...prev,
+        firstName: client.firstName,
+        lastName: client.lastName,
+        phone: client.phone,
+        email: client.email,
+        address: client.address || "",
+        clientNotes: client.notes || "",
+      }))
+      toast.success("לקוח קיים נמצא - הפרטים מולאו אוטומטית")
+    } else {
+      setClientStatus("new")
+      toast.info("לקוח חדש - מלא את הפרטים")
+    }
+  }, 500)
+
+  const handleIdNumberChange = (value: string) => {
+    // Allow only digits
+    const cleanValue = value.replace(/\D/g, "").slice(0, 9)
+    handleChange("idNumber", cleanValue)
+
+    // Clear client fields if idNumber changes and a client was found before
+    if (clientStatus === "found") {
+      setFormData((prev) => ({
+        ...prev,
+        firstName: "",
+        lastName: "",
+        phone: "",
+        email: "",
+        address: "",
+        clientNotes: "",
+      }))
+    }
+
+    // Trigger debounced search
+    debouncedSearch(cleanValue)
+  }
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {}
+
+    // ID Number validation (9 digits)
+    if (!formData.idNumber) {
+      newErrors.idNumber = VALIDATION.required
+    } else if (!/^\d{9}$/.test(formData.idNumber)) {
+      newErrors.idNumber = VALIDATION.invalidIdNumber
+    }
+
+    // Required fields
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = VALIDATION.required
+    }
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = VALIDATION.required
+    }
+
+    // Phone validation (10 digits)
+    if (!formData.phone) {
+      newErrors.phone = VALIDATION.required
+    } else if (!/^\d{10}$/.test(formData.phone.replace(/\D/g, ""))) {
+      newErrors.phone = VALIDATION.invalidPhone
+    }
+
+    // Email validation (optional but must be valid if provided)
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = VALIDATION.invalidEmail
+    }
+
+    // Declaration date required
+    if (!formData.declarationDate) {
+      newErrors.declarationDate = VALIDATION.required
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (!formData.clientId) {
-      toast.error("אנא בחר לקוח")
+
+    if (!validateForm()) {
+      toast.error("יש לתקן את השגיאות בטופס")
       return
     }
 
     setIsSubmitting(true)
 
     try {
-      const result = await createDeclaration({
-        clientId: formData.clientId,
+      // Build the data object, only including optional fields if they have values
+      const submitData: Parameters<typeof createDeclarationWithClient>[0] = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        idNumber: formData.idNumber,
+        phone: formData.phone.replace(/\D/g, ""),
+        email: formData.email.trim(),
         year: Number(formData.year),
         declarationDate: new Date(formData.declarationDate),
-        subject: formData.subject,
-        notes: formData.notes,
-        ...(formData.taxAuthorityDueDate ? { taxAuthorityDueDate: new Date(formData.taxAuthorityDueDate) } : {}),
-        ...(formData.internalDueDate ? { internalDueDate: new Date(formData.internalDueDate) } : {}),
-      })
+        subject: formData.subject.trim(),
+      }
 
-      toast.success("ההצהרה נוצרה בהצלחה")
-      router.push(`/dashboard/declarations/${result.id}`)
+      // Add optional client fields only if they have values
+      if (formData.address.trim()) {
+        submitData.address = formData.address.trim()
+      }
+      if (formData.clientNotes.trim()) {
+        submitData.notes = formData.clientNotes.trim()
+      }
+      if (formData.declarationNotes.trim()) {
+        submitData.declarationNotes = formData.declarationNotes.trim()
+      }
+      if (formData.taxAuthorityDueDate) {
+        submitData.taxAuthorityDueDate = new Date(formData.taxAuthorityDueDate)
+      }
+      if (formData.internalDueDate) {
+        submitData.internalDueDate = new Date(formData.internalDueDate)
+      }
+
+      const result = await createDeclarationWithClient(submitData)
+
+      if (result.success && result.id) {
+        toast.success("ההצהרה נוצרה בהצלחה")
+        router.push(`/dashboard/declarations/${result.id}`)
+      } else {
+        toast.error(result.error || "שגיאה ביצירת ההצהרה")
+      }
     } catch (error) {
       console.error(error)
       toast.error("שגיאה ביצירת ההצהרה")
@@ -76,36 +212,174 @@ export function CreateDeclarationForm({ clients }: CreateDeclarationFormProps) {
     }
   }
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = (field: keyof FormData, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+  }
+
+  const handlePhoneChange = (value: string) => {
+    // Allow only digits
+    const cleanValue = value.replace(/\D/g, "").slice(0, 10)
+    handleChange("phone", cleanValue)
+  }
+
+  const renderClientStatusBadge = () => {
+    switch (clientStatus) {
+      case "searching":
+        return (
+          <Badge variant="secondary" className="gap-1">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            מחפש...
+          </Badge>
+        )
+      case "found":
+        return (
+          <Badge variant="default" className="gap-1 bg-green-600">
+            <UserCheck className="h-3 w-3" />
+            לקוח קיים
+          </Badge>
+        )
+      case "new":
+        return (
+          <Badge variant="default" className="gap-1 bg-blue-600">
+            <UserPlus className="h-3 w-3" />
+            לקוח חדש
+          </Badge>
+        )
+      default:
+        return null
+    }
   }
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Client Selection */}
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Client Details Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>פרטי לקוח</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* ID Number with Status Badge */}
           <div className="space-y-2">
-            <Label htmlFor="client">לקוח *</Label>
-            <Select
-              value={formData.clientId}
-              onValueChange={(value) => handleChange("clientId", value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="בחר לקוח" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.firstName} {client.lastName} ({client.idNumber})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="idNumber">{CLIENTS.form.idNumber} *</Label>
+              {renderClientStatusBadge()}
+            </div>
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="idNumber"
+                value={formData.idNumber}
+                onChange={(e) => handleIdNumberChange(e.target.value)}
+                placeholder="הקלד 9 ספרות לחיפוש"
+                className={`pr-10 ${errors.idNumber ? "border-destructive" : ""}`}
+                dir="ltr"
+              />
+            </div>
+            {errors.idNumber && (
+              <p className="text-sm text-destructive">{errors.idNumber}</p>
+            )}
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-            {/* Tax Year */}
+          {/* Name Fields */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="firstName">{CLIENTS.form.firstName} *</Label>
+              <Input
+                id="firstName"
+                value={formData.firstName}
+                onChange={(e) => handleChange("firstName", e.target.value)}
+                className={errors.firstName ? "border-destructive" : ""}
+              />
+              {errors.firstName && (
+                <p className="text-sm text-destructive">{errors.firstName}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="lastName">{CLIENTS.form.lastName} *</Label>
+              <Input
+                id="lastName"
+                value={formData.lastName}
+                onChange={(e) => handleChange("lastName", e.target.value)}
+                className={errors.lastName ? "border-destructive" : ""}
+              />
+              {errors.lastName && (
+                <p className="text-sm text-destructive">{errors.lastName}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Contact Fields */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="phone">{CLIENTS.form.phone} *</Label>
+              <Input
+                id="phone"
+                value={formData.phone}
+                onChange={(e) => handlePhoneChange(e.target.value)}
+                placeholder="0501234567"
+                className={errors.phone ? "border-destructive" : ""}
+                dir="ltr"
+              />
+              {errors.phone && (
+                <p className="text-sm text-destructive">{errors.phone}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">{CLIENTS.form.email}</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleChange("email", e.target.value)}
+                placeholder="example@email.com"
+                className={errors.email ? "border-destructive" : ""}
+                dir="ltr"
+              />
+              {errors.email && (
+                <p className="text-sm text-destructive">{errors.email}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Address */}
+          <div className="space-y-2">
+            <Label htmlFor="address">{CLIENTS.form.address}</Label>
+            <Input
+              id="address"
+              value={formData.address}
+              onChange={(e) => handleChange("address", e.target.value)}
+            />
+          </div>
+
+          {/* Client Notes */}
+          <div className="space-y-2">
+            <Label htmlFor="clientNotes">{CLIENTS.form.notes}</Label>
+            <Textarea
+              id="clientNotes"
+              value={formData.clientNotes}
+              onChange={(e) => handleChange("clientNotes", e.target.value)}
+              rows={2}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Declaration Details Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>פרטי הצהרה</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Year and Declaration Date */}
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="year">שנת מס *</Label>
               <Input
@@ -113,11 +387,8 @@ export function CreateDeclarationForm({ clients }: CreateDeclarationFormProps) {
                 type="number"
                 value={formData.year}
                 onChange={(e) => handleChange("year", e.target.value)}
-                required
               />
             </div>
-
-            {/* Declaration Date */}
             <div className="space-y-2">
               <Label htmlFor="declarationDate">תאריך הצהרה (יום קובע) *</Label>
               <Input
@@ -125,25 +396,28 @@ export function CreateDeclarationForm({ clients }: CreateDeclarationFormProps) {
                 type="date"
                 value={formData.declarationDate}
                 onChange={(e) => handleChange("declarationDate", e.target.value)}
-                required
+                className={errors.declarationDate ? "border-destructive" : ""}
               />
+              {errors.declarationDate && (
+                <p className="text-sm text-destructive">{errors.declarationDate}</p>
+              )}
             </div>
           </div>
 
-          <div className="grid gap-6 sm:grid-cols-2">
-             {/* Tax Authority Due Date */}
-             <div className="space-y-2">
+          {/* Due Dates */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
               <Label htmlFor="taxAuthorityDueDate">דד-ליין רשות המסים</Label>
               <Input
                 id="taxAuthorityDueDate"
                 type="date"
                 value={formData.taxAuthorityDueDate}
-                onChange={(e) => handleChange("taxAuthorityDueDate", e.target.value)}
+                onChange={(e) =>
+                  handleChange("taxAuthorityDueDate", e.target.value)
+                }
               />
             </div>
-
-             {/* Internal Due Date */}
-             <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="internalDueDate">דד-ליין פנימי</Label>
               <Input
                 id="internalDueDate"
@@ -161,29 +435,35 @@ export function CreateDeclarationForm({ clients }: CreateDeclarationFormProps) {
               id="subject"
               value={formData.subject}
               onChange={(e) => handleChange("subject", e.target.value)}
-              required
             />
           </div>
 
-          {/* Notes */}
+          {/* Declaration Notes */}
           <div className="space-y-2">
-            <Label htmlFor="notes">הערות</Label>
+            <Label htmlFor="declarationNotes">הערות להצהרה</Label>
             <Textarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => handleChange("notes", e.target.value)}
+              id="declarationNotes"
+              value={formData.declarationNotes}
+              onChange={(e) => handleChange("declarationNotes", e.target.value)}
               rows={3}
             />
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Submit */}
-          <div className="flex justify-end">
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "יוצר..." : "צור הצהרה"}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+      {/* Submit Button */}
+      <div className="flex justify-end">
+        <Button type="submit" disabled={isSubmitting} size="lg">
+          {isSubmitting ? (
+            <>
+              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+              יוצר הצהרה...
+            </>
+          ) : (
+            "צור הצהרה"
+          )}
+        </Button>
+      </div>
+    </form>
   )
 }

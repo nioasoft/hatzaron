@@ -3,11 +3,8 @@ import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DECLARATIONS, ACTIONS } from "@/lib/constants/hebrew"
 import { CreateDeclarationForm } from "@/components/declarations/create-declaration-form"
-import { getClients } from "@/app/dashboard/clients/actions"
 
-export default async function NewDeclarationPage() {
-  const clients = await getClients()
-
+export default function NewDeclarationPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -28,7 +25,7 @@ export default async function NewDeclarationPage() {
 
       {/* Form */}
       <div className="max-w-2xl">
-        <CreateDeclarationForm clients={clients} />
+        <CreateDeclarationForm />
       </div>
     </div>
   )
