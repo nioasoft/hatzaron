@@ -816,6 +816,174 @@ export type EnhancedDeclaration = DeclarationWithClient & {
   documentCount: number
 }
 
+// ============================================================
+// Client Search and Declaration Creation Actions
+// ============================================================
+
+export type ClientSearchResult = {
+  id: string
+  firstName: string
+  lastName: string
+  idNumber: string
+  phone: string
+  email: string
+  address: string | null
+  notes: string | null
+  activeDeclarations: number
+}
+
+export async function findClientByIdNumber(idNumber: string): Promise<ClientSearchResult | null> {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session?.user) return null
+
+  const firmId = (session.user as { firmId?: string }).firmId
+  if (!firmId) return null
+
+  const clientData = await db.query.client.findFirst({
+    where: and(eq(client.idNumber, idNumber), eq(client.firmId, firmId)),
+  })
+
+  if (!clientData) return null
+
+  return {
+    id: clientData.id,
+    firstName: clientData.firstName,
+    lastName: clientData.lastName,
+    idNumber: clientData.idNumber || "",
+    phone: clientData.phone || "",
+    email: clientData.email,
+    address: clientData.address || null,
+    notes: clientData.notes || null,
+    activeDeclarations: 0,
+  }
+}
+
+export interface CreateDeclarationWithClientData {
+  // Client fields
+  firstName: string
+  lastName: string
+  idNumber: string
+  phone: string
+  email: string
+  address?: string
+  notes?: string
+
+  // Declaration fields
+  year: number
+  declarationDate: Date
+  taxAuthorityDueDate?: Date
+  internalDueDate?: Date
+  subject: string
+  declarationNotes?: string
+}
+
+export async function createDeclarationWithClient(
+  data: CreateDeclarationWithClientData
+): Promise<{ success: boolean; id?: string; error?: string }> {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session?.user) return { success: false, error: "Unauthorized" }
+
+  const firmId = (session.user as { firmId?: string }).firmId
+  if (!firmId) return { success: false, error: "No firm associated with user" }
+
+  try {
+    // Check if client exists by idNumber + firmId
+    let clientId: string
+    const existingClient = await db.query.client.findFirst({
+      where: and(eq(client.idNumber, data.idNumber), eq(client.firmId, firmId)),
+    })
+
+    if (existingClient) {
+      // Update existing client with new data
+      await db
+        .update(client)
+        .set({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          phone: data.phone,
+          email: data.email,
+          address: data.address || null,
+          notes: data.notes || null,
+        })
+        .where(eq(client.id, existingClient.id))
+      clientId = existingClient.id
+    } else {
+      // Create new client
+      const newClient = await db
+        .insert(client)
+        .values({
+          firmId: firmId,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          idNumber: data.idNumber,
+          phone: data.phone,
+          email: data.email,
+          address: data.address || null,
+          notes: data.notes || null,
+          status: "active",
+        })
+        .returning({ id: client.id })
+
+      clientId = newClient[0]!.id
+    }
+
+    // Generate public token
+    const publicToken = randomBytes(24).toString("hex")
+
+    // Create declaration
+    const newDeclaration = await db
+      .insert(declaration)
+      .values({
+        firmId: firmId,
+        clientId: clientId,
+        year: data.year,
+        declarationDate: data.declarationDate,
+        taxAuthorityDueDate: data.taxAuthorityDueDate ? data.taxAuthorityDueDate.toISOString() : null,
+        internalDueDate: data.internalDueDate ? data.internalDueDate.toISOString() : null,
+        subject: data.subject,
+        notes: data.declarationNotes || null,
+        publicToken: publicToken,
+        status: "sent",
+        data: {},
+      })
+      .returning({ id: declaration.id })
+
+    // Send Email
+    try {
+      const firmData = await db.query.firm.findFirst({
+        where: eq(firm.id, firmId),
+      })
+
+      if (firmData && data.email) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+        const portalLink = `${appUrl}/portal/${publicToken}`
+
+        await sendDeclarationLink({
+          to: data.email,
+          clientName: `${data.firstName} ${data.lastName}`,
+          firmName: firmData.name,
+          ...(firmData.contactEmail ? { firmEmail: firmData.contactEmail } : {}),
+          portalLink,
+          year: data.year,
+        })
+      }
+    } catch (emailError) {
+      console.error("Failed to send declaration email:", emailError)
+      // Don't fail the request if email fails
+    }
+
+    revalidatePath("/dashboard/declarations")
+    return { success: true, id: newDeclaration[0]!.id }
+  } catch (error) {
+    console.error("Failed to create declaration with client:", error)
+    return { success: false, error: "Failed to create declaration" }
+  }
+}
+
+// ============================================================
+// Enhanced getDeclarations with Filters
+// ============================================================
+
 export async function getDeclarationsWithFilters(
   filters?: DeclarationFilters
 ): Promise<EnhancedDeclaration[]> {
