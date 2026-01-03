@@ -456,6 +456,45 @@ export const DASHBOARD_ENHANCED = {
   },
 } as const;
 
+// Assignment management
+export const ASSIGNMENT = {
+  title: "הקצאת רואה חשבון",
+  placeholder: "בחר רואה חשבון",
+  unassigned: "לא מוקצה",
+  assignedTo: "מוקצה ל",
+  toast: {
+    success: "רואה החשבון הוקצה בהצלחה",
+    error: "שגיאה בהקצאת רואה חשבון",
+  },
+} as const;
+
+// Email reminders
+export const EMAIL_REMINDER = {
+  title: "שליחת תזכורת באימייל",
+  types: {
+    documents_request: "בקשה להעלאת מסמכים",
+    status_update: "עדכון סטטוס",
+    general: "הודעה כללית",
+  },
+  form: {
+    selectType: "בחר סוג תזכורת",
+    preview: "תצוגה מקדימה",
+    customMessage: "הודעה מותאמת אישית (אופציונלי)",
+    customMessagePlaceholder: "הוסף הודעה מותאמת אישית...",
+    send: "שלח תזכורת",
+    sending: "שולח...",
+  },
+  templates: {
+    documents_request: "שלום {name}, זוהי תזכורת להעלאת המסמכים הנדרשים לצורך הגשת הצהרת ההון לשנת {year}. להעלאת מסמכים: {link}",
+    status_update: "שלום {name}, רצינו לעדכן אותך לגבי הצהרת ההון שלך לשנת {year}. לצפייה בסטטוס: {link}",
+    general: "שלום {name}, הודעה חשובה בנושא הצהרת ההון שלך לשנת {year}. לפרטים נוספים: {link}",
+  },
+  toast: {
+    success: "התזכורת נשלחה בהצלחה",
+    error: "שגיאה בשליחת התזכורת",
+  },
+} as const;
+
 // Status management
 export const STATUS_MANAGEMENT = {
   dialog: {
