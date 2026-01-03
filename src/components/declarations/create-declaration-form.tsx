@@ -8,9 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Search, UserCheck, UserPlus } from "lucide-react"
+import { Loader2, UserCheck, UserPlus } from "lucide-react"
 import {
   findClientByIdNumber,
   createDeclarationWithClient,
@@ -142,8 +141,10 @@ export function CreateDeclarationForm() {
       newErrors.phone = VALIDATION.invalidPhone
     }
 
-    // Email validation (optional but must be valid if provided)
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    // Email validation (required and must be valid)
+    if (!formData.email) {
+      newErrors.email = VALIDATION.required
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = VALIDATION.invalidEmail
     }
 
@@ -259,39 +260,38 @@ export function CreateDeclarationForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="grid gap-4 lg:grid-cols-2">
       {/* Client Details Card */}
       <Card>
-        <CardHeader>
-          <CardTitle>פרטי לקוח</CardTitle>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">פרטי לקוח</CardTitle>
+            {renderClientStatusBadge()}
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* ID Number with Status Badge */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="idNumber">{CLIENTS.form.idNumber} *</Label>
-              {renderClientStatusBadge()}
-            </div>
-            <div className="relative">
-              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <CardContent className="space-y-3">
+          {/* Row 1: ID + First Name + Last Name (3 columns on desktop, stacked on mobile) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="idNumber" className="text-sm">
+                {CLIENTS.form.idNumber} *
+              </Label>
               <Input
                 id="idNumber"
                 value={formData.idNumber}
                 onChange={(e) => handleIdNumberChange(e.target.value)}
-                placeholder="הקלד 9 ספרות לחיפוש"
-                className={`pr-10 ${errors.idNumber ? "border-destructive" : ""}`}
+                placeholder="9 ספרות"
+                className={errors.idNumber ? "border-destructive" : ""}
                 dir="ltr"
               />
+              {errors.idNumber && (
+                <p className="text-xs text-destructive">{errors.idNumber}</p>
+              )}
             </div>
-            {errors.idNumber && (
-              <p className="text-sm text-destructive">{errors.idNumber}</p>
-            )}
-          </div>
-
-          {/* Name Fields */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="firstName">{CLIENTS.form.firstName} *</Label>
+            <div className="space-y-1">
+              <Label htmlFor="firstName" className="text-sm">
+                {CLIENTS.form.firstName} *
+              </Label>
               <Input
                 id="firstName"
                 value={formData.firstName}
@@ -299,11 +299,13 @@ export function CreateDeclarationForm() {
                 className={errors.firstName ? "border-destructive" : ""}
               />
               {errors.firstName && (
-                <p className="text-sm text-destructive">{errors.firstName}</p>
+                <p className="text-xs text-destructive">{errors.firstName}</p>
               )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">{CLIENTS.form.lastName} *</Label>
+            <div className="space-y-1">
+              <Label htmlFor="lastName" className="text-sm">
+                {CLIENTS.form.lastName} *
+              </Label>
               <Input
                 id="lastName"
                 value={formData.lastName}
@@ -311,15 +313,17 @@ export function CreateDeclarationForm() {
                 className={errors.lastName ? "border-destructive" : ""}
               />
               {errors.lastName && (
-                <p className="text-sm text-destructive">{errors.lastName}</p>
+                <p className="text-xs text-destructive">{errors.lastName}</p>
               )}
             </div>
           </div>
 
-          {/* Contact Fields */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="phone">{CLIENTS.form.phone} *</Label>
+          {/* Row 2: Phone + Email (2 columns on desktop, stacked on mobile) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="phone" className="text-sm">
+                {CLIENTS.form.phone} *
+              </Label>
               <Input
                 id="phone"
                 value={formData.phone}
@@ -329,11 +333,13 @@ export function CreateDeclarationForm() {
                 dir="ltr"
               />
               {errors.phone && (
-                <p className="text-sm text-destructive">{errors.phone}</p>
+                <p className="text-xs text-destructive">{errors.phone}</p>
               )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">{CLIENTS.form.email}</Label>
+            <div className="space-y-1">
+              <Label htmlFor="email" className="text-sm">
+                {CLIENTS.form.email} *
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -344,44 +350,49 @@ export function CreateDeclarationForm() {
                 dir="ltr"
               />
               {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
+                <p className="text-xs text-destructive">{errors.email}</p>
               )}
             </div>
           </div>
 
-          {/* Address */}
-          <div className="space-y-2">
-            <Label htmlFor="address">{CLIENTS.form.address}</Label>
-            <Input
-              id="address"
-              value={formData.address}
-              onChange={(e) => handleChange("address", e.target.value)}
-            />
-          </div>
-
-          {/* Client Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="clientNotes">{CLIENTS.form.notes}</Label>
-            <Textarea
-              id="clientNotes"
-              value={formData.clientNotes}
-              onChange={(e) => handleChange("clientNotes", e.target.value)}
-              rows={2}
-            />
+          {/* Row 3: Address + Notes (2 columns on desktop, stacked on mobile) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="address" className="text-sm">
+                {CLIENTS.form.address}
+              </Label>
+              <Input
+                id="address"
+                value={formData.address}
+                onChange={(e) => handleChange("address", e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="clientNotes" className="text-sm">
+                {CLIENTS.form.notes}
+              </Label>
+              <Input
+                id="clientNotes"
+                value={formData.clientNotes}
+                onChange={(e) => handleChange("clientNotes", e.target.value)}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Declaration Details Card */}
       <Card>
-        <CardHeader>
-          <CardTitle>פרטי הצהרה</CardTitle>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">פרטי הצהרה</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Year and Declaration Date */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="year">שנת מס *</Label>
+        <CardContent className="space-y-3">
+          {/* Row 1: Year + Date + Subject (3 columns on desktop, stacked on mobile) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="year" className="text-sm">
+                שנת מס *
+              </Label>
               <Input
                 id="year"
                 type="number"
@@ -389,8 +400,10 @@ export function CreateDeclarationForm() {
                 onChange={(e) => handleChange("year", e.target.value)}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="declarationDate">תאריך הצהרה (יום קובע) *</Label>
+            <div className="space-y-1">
+              <Label htmlFor="declarationDate" className="text-sm">
+                תאריך הצהרה *
+              </Label>
               <Input
                 id="declarationDate"
                 type="date"
@@ -399,15 +412,27 @@ export function CreateDeclarationForm() {
                 className={errors.declarationDate ? "border-destructive" : ""}
               />
               {errors.declarationDate && (
-                <p className="text-sm text-destructive">{errors.declarationDate}</p>
+                <p className="text-xs text-destructive">{errors.declarationDate}</p>
               )}
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="subject" className="text-sm">
+                נושא
+              </Label>
+              <Input
+                id="subject"
+                value={formData.subject}
+                onChange={(e) => handleChange("subject", e.target.value)}
+              />
             </div>
           </div>
 
-          {/* Due Dates */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="taxAuthorityDueDate">דד-ליין רשות המסים</Label>
+          {/* Row 2: Due Dates (2 columns on desktop, stacked on mobile) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="taxAuthorityDueDate" className="text-sm">
+                דד-ליין רשות המסים
+              </Label>
               <Input
                 id="taxAuthorityDueDate"
                 type="date"
@@ -417,8 +442,10 @@ export function CreateDeclarationForm() {
                 }
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="internalDueDate">דד-ליין פנימי</Label>
+            <div className="space-y-1">
+              <Label htmlFor="internalDueDate" className="text-sm">
+                דד-ליין פנימי
+              </Label>
               <Input
                 id="internalDueDate"
                 type="date"
@@ -428,31 +455,22 @@ export function CreateDeclarationForm() {
             </div>
           </div>
 
-          {/* Subject */}
-          <div className="space-y-2">
-            <Label htmlFor="subject">נושא *</Label>
+          {/* Row 3: Declaration Notes (full width) */}
+          <div className="space-y-1">
+            <Label htmlFor="declarationNotes" className="text-sm">
+              הערות להצהרה
+            </Label>
             <Input
-              id="subject"
-              value={formData.subject}
-              onChange={(e) => handleChange("subject", e.target.value)}
-            />
-          </div>
-
-          {/* Declaration Notes */}
-          <div className="space-y-2">
-            <Label htmlFor="declarationNotes">הערות להצהרה</Label>
-            <Textarea
               id="declarationNotes"
               value={formData.declarationNotes}
               onChange={(e) => handleChange("declarationNotes", e.target.value)}
-              rows={3}
             />
           </div>
         </CardContent>
       </Card>
 
-      {/* Submit Button */}
-      <div className="flex justify-end">
+      {/* Submit Button - spans both columns */}
+      <div className="lg:col-span-2 flex justify-end">
         <Button type="submit" disabled={isSubmitting} size="lg">
           {isSubmitting ? (
             <>

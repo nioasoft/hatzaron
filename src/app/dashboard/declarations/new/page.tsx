@@ -24,7 +24,7 @@ export default function NewDeclarationPage() {
       </div>
 
       {/* Form */}
-      <div className="max-w-2xl">
+      <div className="max-w-6xl">
         <CreateDeclarationForm />
       </div>
     </div>

@@ -182,7 +182,7 @@ export const CLIENTS = {
     lastName: "שם משפחה",
     idNumber: "תעודת זהות",
     phone: "טלפון",
-    email: "אימייל (אופציונלי)",
+    email: "אימייל",
     address: "כתובת",
     notes: "הערות",
     submit: "שמור לקוח",
