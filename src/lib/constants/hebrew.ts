@@ -375,6 +375,110 @@ export const ADMIN = {
   },
 } as const;
 
+// Communication logging
+export const COMMUNICATION = {
+  title: "תקשורת",
+  types: {
+    letter: "מכתב",
+    phone_call: "שיחת טלפון",
+    whatsapp: "וואטסאפ",
+    note: "הערה",
+  },
+  directions: {
+    outbound: "יוצאת",
+    inbound: "נכנסת",
+  },
+  form: {
+    type: "סוג תקשורת",
+    direction: "כיוון",
+    subject: "נושא",
+    content: "תוכן",
+    outcome: "תוצאה/סיכום",
+    date: "תאריך ושעה",
+    save: "שמור",
+  },
+  history: {
+    title: "היסטוריית תקשורת",
+    empty: "אין תקשורת מתועדת",
+  },
+  whatsapp: {
+    sendReminder: "שלח תזכורת בוואטסאפ",
+    messageTemplate: "שלום {name}, בנושא הצהרת הון לשנת {year} - להעלאת מסמכים: {link}",
+  },
+} as const;
+
+// Penalty management
+export const PENALTY = {
+  title: "ניהול קנסות",
+  status: {
+    received: "התקבל קנס",
+    appeal_submitted: "הוגש ערעור",
+    cancelled: "בוטל",
+    paid_by_client: 'שולם ע"י לקוח',
+    paid_by_office: 'שולם ע"י משרד',
+  },
+  form: {
+    amount: "סכום הקנס",
+    receivedDate: "תאריך קבלה",
+    notes: "הערות",
+    appealDate: "תאריך ערעור",
+    appealNotes: "פרטי הערעור",
+    paidDate: "תאריך תשלום",
+    paidAmount: "סכום ששולם",
+    paidBy: "שולם על ידי",
+    paidByOptions: { client: "לקוח", office: "משרד" },
+  },
+  lateSubmission: { indicator: "הוגש באיחור" },
+} as const;
+
+// Dashboard enhancements (stats, filters, days remaining)
+export const DASHBOARD_ENHANCED = {
+  stats: {
+    total: "סה״כ הצהרות",
+    critical: "קריטי",
+    urgent: "דחוף",
+    waiting: "בהמתנה",
+    sent: "נשלח",
+    inProgress: "בתהליך",
+    submitted: "הוגש",
+  },
+  filters: {
+    allStatuses: "כל הסטטוסים",
+    allYears: "כל השנים",
+    allPriorities: "כל העדיפויות",
+    allAccountants: "כל רואי החשבון",
+    searchPlaceholder: "חיפוש לפי שם או אימייל...",
+  },
+  daysRemaining: {
+    overdue: "עבר",
+    days: "ימים",
+    today: "היום",
+  },
+} as const;
+
+// Status management
+export const STATUS_MANAGEMENT = {
+  dialog: {
+    title: "שינוי סטטוס",
+    currentStatus: "סטטוס נוכחי",
+    newStatus: "סטטוס חדש",
+    notes: "הערות (אופציונלי)",
+    notesPlaceholder: "הוסף הערות לשינוי הסטטוס...",
+    save: "שמור",
+    cancel: "ביטול",
+  },
+  timeline: {
+    title: "היסטוריית סטטוסים",
+    empty: "אין היסטוריית סטטוסים",
+    systemChange: "שינוי מערכת",
+    manualChange: "שינוי ידני",
+  },
+  toast: {
+    success: "הסטטוס עודכן בהצלחה",
+    error: "שגיאה בעדכון הסטטוס",
+  },
+} as const;
+
 // Marketing page content
 export const MARKETING = {
   hero: {
