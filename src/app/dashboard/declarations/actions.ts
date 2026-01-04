@@ -1011,13 +1011,14 @@ export async function getDeclarationsWithFilters(
     )
   }
 
-  // Subquery for document counts
+  // Subquery for document counts (filtered by firmId to avoid scanning entire table)
   const docCountSubquery = db
     .select({
       declarationId: document.declarationId,
       docCount: count().as('doc_count'),
     })
     .from(document)
+    .where(eq(document.firmId, firmId))
     .groupBy(document.declarationId)
     .as('doc_counts')
 
