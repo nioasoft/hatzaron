@@ -12,7 +12,6 @@ import {
   StickyNote,
   User,
 } from "lucide-react"
-
 import { getUnifiedHistory, type UnifiedHistoryEntry } from "@/app/dashboard/declarations/actions"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -195,12 +194,16 @@ export function UnifiedTimeline({
     <div className="space-y-4">
       {/* Timeline entries */}
       <div className="space-y-3">
-        {displayedEntries.map((entry) => (
-          <div key={entry.id} className="flex gap-3">
+        {displayedEntries.map((entry, index) => (
+          <div
+            key={entry.id}
+            className="flex gap-3 animate-in fade-in slide-in-from-top-2 duration-300"
+            style={{ animationDelay: `${index * 50}ms`, animationFillMode: "backwards" }}
+          >
             {/* Icon */}
             <div
               className={cn(
-                "h-8 w-8 rounded-full flex items-center justify-center shrink-0",
+                "h-8 w-8 rounded-full flex items-center justify-center shrink-0 transition-transform hover:scale-110",
                 getEntryColors(entry)
               )}
             >

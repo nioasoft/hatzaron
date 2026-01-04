@@ -2,7 +2,6 @@
 
 import { differenceInDays } from "date-fns"
 import { AlertTriangle, Calendar, Clock, UserCheck } from "lucide-react"
-
 import { AssignAccountantSelect } from "@/components/declarations/assign-accountant-select"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -53,7 +52,7 @@ function DeadlineDisplay({
   const daysInfo = getDaysRemaining(date)
 
   return (
-    <div className="rounded-lg border bg-muted/30 p-3">
+    <div className="rounded-lg border bg-muted/30 p-3 transition-all hover:bg-muted/50">
       <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
         <Calendar className="h-3.5 w-3.5" />
         {label}
@@ -66,13 +65,13 @@ function DeadlineDisplay({
           {daysInfo && (
             <div
               className={cn(
-                "flex items-center gap-1 text-xs mt-1",
+                "flex items-center gap-1 text-xs mt-1 transition-colors",
                 daysInfo.isOverdue && "text-destructive",
                 daysInfo.isUrgent && !daysInfo.isOverdue && "text-orange-600 dark:text-orange-400",
                 !daysInfo.isOverdue && !daysInfo.isUrgent && "text-green-600 dark:text-green-400"
               )}
             >
-              <Clock className="h-3 w-3" />
+              <Clock className={cn("h-3 w-3", daysInfo.isOverdue && "animate-pulse")} />
               {daysInfo.label}
             </div>
           )}
@@ -138,24 +137,24 @@ export function OfficeStatusCard({
         {hasPenalty && (
           <>
             <Separator />
-            <div className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-950/20 p-3">
+            <div className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-950/20 p-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div className="flex items-center gap-2 text-destructive mb-2">
-                <AlertTriangle className="h-4 w-4" />
+                <AlertTriangle className="h-4 w-4 animate-pulse" />
                 <span className="font-medium text-sm">{PENALTY.title}</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {wasSubmittedLate && (
-                  <Badge variant="destructive" className="text-xs">
+                  <Badge variant="destructive" className="text-xs animate-in fade-in duration-200" style={{ animationDelay: "100ms" }}>
                     {PENALTY.lateSubmission.indicator}
                   </Badge>
                 )}
                 {penaltyAmount && (
-                  <Badge variant="outline" className="text-xs border-red-200 dark:border-red-800">
+                  <Badge variant="outline" className="text-xs border-red-200 dark:border-red-800 animate-in fade-in duration-200" style={{ animationDelay: "150ms" }}>
                     סכום: ₪{Number(penaltyAmount).toLocaleString()}
                   </Badge>
                 )}
                 {penaltyStatus && (
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-xs animate-in fade-in duration-200" style={{ animationDelay: "200ms" }}>
                     {PENALTY.status[penaltyStatus as keyof typeof PENALTY.status] || penaltyStatus}
                   </Badge>
                 )}
