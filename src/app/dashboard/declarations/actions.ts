@@ -587,39 +587,21 @@ export async function getDeclarationStats(): Promise<DeclarationStats> {
     return { total: 0, critical: 0, urgent: 0, waiting: 0, sent: 0, inProgress: 0, submitted: 0 }
   }
 
-  const results = await db
+  // Use SQL aggregates for better performance
+  const [stats] = await db
     .select({
-      status: declaration.status,
-      priority: declaration.priority,
+      total: sql<number>`count(*)::int`,
+      critical: sql<number>`count(*) filter (where ${declaration.priority} = 'critical')::int`,
+      urgent: sql<number>`count(*) filter (where ${declaration.priority} = 'urgent')::int`,
+      waiting: sql<number>`count(*) filter (where ${declaration.status} in ('waiting', 'waiting_documents'))::int`,
+      sent: sql<number>`count(*) filter (where ${declaration.status} = 'sent')::int`,
+      inProgress: sql<number>`count(*) filter (where ${declaration.status} in ('in_progress', 'documents_received', 'reviewing', 'in_preparation', 'pending_approval'))::int`,
+      submitted: sql<number>`count(*) filter (where ${declaration.status} = 'submitted')::int`,
     })
     .from(declaration)
     .where(eq(declaration.firmId, firmId))
 
-  const stats: DeclarationStats = {
-    total: results.length,
-    critical: 0,
-    urgent: 0,
-    waiting: 0,
-    sent: 0,
-    inProgress: 0,
-    submitted: 0,
-  }
-
-  for (const row of results) {
-    // Count by priority
-    if (row.priority === "critical") stats.critical++
-    if (row.priority === "urgent") stats.urgent++
-
-    // Count by status
-    if (row.status === "waiting" || row.status === "waiting_documents") stats.waiting++
-    if (row.status === "sent") stats.sent++
-    if (["in_progress", "documents_received", "reviewing", "in_preparation", "pending_approval"].includes(row.status || "")) {
-      stats.inProgress++
-    }
-    if (row.status === "submitted") stats.submitted++
-  }
-
-  return stats
+  return stats || { total: 0, critical: 0, urgent: 0, waiting: 0, sent: 0, inProgress: 0, submitted: 0 }
 }
 
 // ============================================================
@@ -1018,8 +1000,29 @@ export async function getDeclarationsWithFilters(
     conditions.push(eq(declaration.assignedTo, filters.assignedTo))
   }
 
-  // Build main query
-  let results = await db
+  // Apply search filter in SQL for better performance
+  if (filters?.search) {
+    const searchPattern = `%${filters.search.toLowerCase()}%`
+    conditions.push(
+      or(
+        sql`lower(${client.firstName} || ' ' || ${client.lastName}) like ${searchPattern}`,
+        sql`lower(${client.email}) like ${searchPattern}`
+      )!
+    )
+  }
+
+  // Subquery for document counts
+  const docCountSubquery = db
+    .select({
+      declarationId: document.declarationId,
+      docCount: count().as('doc_count'),
+    })
+    .from(document)
+    .groupBy(document.declarationId)
+    .as('doc_counts')
+
+  // Build main query with document counts joined
+  const results = await db
     .select({
       id: declaration.id,
       createdAt: declaration.createdAt,
@@ -1036,41 +1039,14 @@ export async function getDeclarationsWithFilters(
       clientEmail: client.email,
       clientPhone: client.phone,
       assignedToName: user.name,
+      documentCount: sql<number>`coalesce(${docCountSubquery.docCount}, 0)::int`,
     })
     .from(declaration)
     .innerJoin(client, eq(declaration.clientId, client.id))
     .leftJoin(user, eq(declaration.assignedTo, user.id))
+    .leftJoin(docCountSubquery, eq(declaration.id, docCountSubquery.declarationId))
     .where(and(...conditions))
     .orderBy(desc(declaration.createdAt))
-
-  // Apply search filter (client-side for simplicity with name/email search)
-  if (filters?.search) {
-    const searchLower = filters.search.toLowerCase()
-    results = results.filter(
-      (row) =>
-        `${row.firstName} ${row.lastName}`.toLowerCase().includes(searchLower) ||
-        row.clientEmail.toLowerCase().includes(searchLower)
-    )
-  }
-
-  // Get document counts for all declarations
-  const declarationIds = results.map((r) => r.id)
-  let documentCounts: Record<string, number> = {}
-
-  if (declarationIds.length > 0) {
-    const docCounts = await db
-      .select({
-        declarationId: document.declarationId,
-        count: count(),
-      })
-      .from(document)
-      .where(sql`${document.declarationId} = ANY(${declarationIds})`)
-      .groupBy(document.declarationId)
-
-    documentCounts = Object.fromEntries(
-      docCounts.map((d) => [d.declarationId, Number(d.count)])
-    )
-  }
 
   return results.map((row) => ({
     id: row.id,
@@ -1089,6 +1065,6 @@ export async function getDeclarationsWithFilters(
     taxYear: row.year,
     wasSubmittedLate: row.wasSubmittedLate ?? false,
     penaltyStatus: row.penaltyStatus,
-    documentCount: documentCounts[row.id] || 0,
+    documentCount: row.documentCount || 0,
   }))
 }
