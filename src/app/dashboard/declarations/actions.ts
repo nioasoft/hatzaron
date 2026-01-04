@@ -72,6 +72,25 @@ export type PenaltyDetails = {
   wasSubmittedLate: boolean
 }
 
+export type UnifiedHistoryEntry = {
+  id: string
+  type: "status_change" | "communication"
+  timestamp: Date
+  // For status changes
+  fromStatus?: string | null
+  toStatus?: string
+  statusNotes?: string | null
+  changedBy?: { name: string } | null
+  isSystemChange?: boolean
+  // For communications
+  communicationType?: CommunicationType
+  direction?: CommunicationDirection
+  subject?: string | null
+  content?: string | null
+  outcome?: string | null
+  createdBy?: { name: string } | null
+}
+
 export type Accountant = {
   id: string
   name: string
@@ -373,6 +392,95 @@ export async function getDeclarationStatusHistory(
       : null,
     changedAt: h.changedAt,
   }))
+}
+
+// ============================================================
+// Unified History Actions
+// ============================================================
+
+export async function getUnifiedHistory(
+  declarationId: string
+): Promise<UnifiedHistoryEntry[]> {
+  const session = await getSession()
+  if (!session?.user) return []
+
+  const firmId = (session.user as { firmId?: string }).firmId
+  if (!firmId) return []
+
+  // Verify declaration belongs to firm
+  const decl = await db
+    .select({ firmId: declaration.firmId })
+    .from(declaration)
+    .where(eq(declaration.id, declarationId))
+    .limit(1)
+
+  const declRow = decl[0]
+  if (!declRow || declRow.firmId !== firmId) return []
+
+  // Fetch both status history and communications in parallel
+  const [statusHistory, communications] = await Promise.all([
+    db
+      .select({
+        id: declarationStatusHistory.id,
+        fromStatus: declarationStatusHistory.fromStatus,
+        toStatus: declarationStatusHistory.toStatus,
+        notes: declarationStatusHistory.notes,
+        changedBy: declarationStatusHistory.changedBy,
+        changedAt: declarationStatusHistory.changedAt,
+        userName: user.name,
+      })
+      .from(declarationStatusHistory)
+      .leftJoin(user, eq(declarationStatusHistory.changedBy, user.id))
+      .where(eq(declarationStatusHistory.declarationId, declarationId))
+      .orderBy(desc(declarationStatusHistory.changedAt)),
+    db
+      .select({
+        id: declarationCommunication.id,
+        type: declarationCommunication.type,
+        direction: declarationCommunication.direction,
+        subject: declarationCommunication.subject,
+        content: declarationCommunication.content,
+        outcome: declarationCommunication.outcome,
+        communicatedAt: declarationCommunication.communicatedAt,
+        createdBy: declarationCommunication.createdBy,
+        userName: user.name,
+      })
+      .from(declarationCommunication)
+      .leftJoin(user, eq(declarationCommunication.createdBy, user.id))
+      .where(eq(declarationCommunication.declarationId, declarationId))
+      .orderBy(desc(declarationCommunication.communicatedAt)),
+  ])
+
+  // Transform and merge
+  const statusEntries: UnifiedHistoryEntry[] = statusHistory.map((h) => ({
+    id: h.id,
+    type: "status_change" as const,
+    timestamp: h.changedAt,
+    fromStatus: h.fromStatus,
+    toStatus: h.toStatus,
+    statusNotes: h.notes,
+    changedBy: h.userName ? { name: h.userName } : null,
+    isSystemChange: !h.changedBy,
+  }))
+
+  const communicationEntries: UnifiedHistoryEntry[] = communications.map((c) => ({
+    id: c.id,
+    type: "communication" as const,
+    timestamp: c.communicatedAt,
+    communicationType: c.type as CommunicationType,
+    direction: c.direction as CommunicationDirection,
+    subject: c.subject,
+    content: c.content,
+    outcome: c.outcome,
+    createdBy: c.userName ? { name: c.userName } : null,
+  }))
+
+  // Merge and sort by timestamp descending
+  const unified = [...statusEntries, ...communicationEntries].sort(
+    (a, b) => b.timestamp.getTime() - a.timestamp.getTime()
+  )
+
+  return unified
 }
 
 // ============================================================
