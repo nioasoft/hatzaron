@@ -9,12 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Loader2, UserCheck, UserPlus } from "lucide-react"
 import {
   findClientByIdNumber,
   createDeclarationWithClient,
 } from "@/app/dashboard/declarations/actions"
 import { CLIENTS, VALIDATION } from "@/lib/constants/hebrew"
+import { validateIsraeliId, formatPhoneNumber } from "@/lib/utils"
 
 type ClientStatus = "idle" | "searching" | "found" | "new"
 
@@ -29,10 +37,8 @@ interface FormData {
   clientNotes: string
   // Declaration fields
   year: number
-  declarationDate: string
   taxAuthorityDueDate: string
   internalDueDate: string
-  subject: string
   declarationNotes: string
 }
 
@@ -57,17 +63,16 @@ export function CreateDeclarationForm() {
     clientNotes: "",
     // Declaration fields
     year: new Date().getFullYear(),
-    declarationDate: new Date().toISOString().split("T")[0]!,
     taxAuthorityDueDate: "",
     internalDueDate: "",
-    subject: "הצהרת הון",
     declarationNotes: "",
   })
 
   // Debounced search for client by ID number
   const debouncedSearch = useDebouncedCallback(async (idNumber: string) => {
     const cleanId = idNumber.replace(/\D/g, "")
-    if (cleanId.length !== 9) {
+    // Only search when we have a valid Israeli ID
+    if (!validateIsraeliId(cleanId)) {
       setClientStatus("idle")
       return
     }
@@ -80,10 +85,10 @@ export function CreateDeclarationForm() {
       // Auto-fill form fields
       setFormData((prev) => ({
         ...prev,
-        firstName: client.firstName,
-        lastName: client.lastName,
-        phone: client.phone,
-        email: client.email,
+        firstName: client.firstName || "",
+        lastName: client.lastName || "",
+        phone: client.phone || "",
+        email: client.email || "",
         address: client.address || "",
         clientNotes: client.notes || "",
       }))
@@ -99,6 +104,20 @@ export function CreateDeclarationForm() {
     const cleanValue = value.replace(/\D/g, "").slice(0, 9)
     handleChange("idNumber", cleanValue)
 
+    // Validate immediately when 9 digits are entered
+    if (cleanValue.length === 9) {
+      if (!validateIsraeliId(cleanValue)) {
+        setErrors((prev) => ({ ...prev, idNumber: VALIDATION.invalidIdNumber }))
+        setClientStatus("idle")
+        return // Don't search if invalid
+      } else {
+        setErrors((prev) => ({ ...prev, idNumber: "" }))
+      }
+    } else if (errors.idNumber) {
+      // Clear error while typing (less than 9 digits)
+      setErrors((prev) => ({ ...prev, idNumber: "" }))
+    }
+
     // Clear client fields if idNumber changes and a client was found before
     if (clientStatus === "found") {
       setFormData((prev) => ({
@@ -112,17 +131,17 @@ export function CreateDeclarationForm() {
       }))
     }
 
-    // Trigger debounced search
+    // Trigger debounced search (only if valid ID)
     debouncedSearch(cleanValue)
   }
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
 
-    // ID Number validation (9 digits)
+    // ID Number validation (Israeli ID checksum)
     if (!formData.idNumber) {
       newErrors.idNumber = VALIDATION.required
-    } else if (!/^\d{9}$/.test(formData.idNumber)) {
+    } else if (!validateIsraeliId(formData.idNumber)) {
       newErrors.idNumber = VALIDATION.invalidIdNumber
     }
 
@@ -148,9 +167,12 @@ export function CreateDeclarationForm() {
       newErrors.email = VALIDATION.invalidEmail
     }
 
-    // Declaration date required
-    if (!formData.declarationDate) {
-      newErrors.declarationDate = VALIDATION.required
+    // Deadline fields required
+    if (!formData.taxAuthorityDueDate) {
+      newErrors.taxAuthorityDueDate = VALIDATION.required
+    }
+    if (!formData.internalDueDate) {
+      newErrors.internalDueDate = VALIDATION.required
     }
 
     setErrors(newErrors)
@@ -168,7 +190,7 @@ export function CreateDeclarationForm() {
     setIsSubmitting(true)
 
     try {
-      // Build the data object, only including optional fields if they have values
+      // Build the data object
       const submitData: Parameters<typeof createDeclarationWithClient>[0] = {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
@@ -176,8 +198,10 @@ export function CreateDeclarationForm() {
         phone: formData.phone.replace(/\D/g, ""),
         email: formData.email.trim(),
         year: Number(formData.year),
-        declarationDate: new Date(formData.declarationDate),
-        subject: formData.subject.trim(),
+        declarationDate: new Date(), // Default to today
+        subject: "הצהרת הון", // Default subject
+        taxAuthorityDueDate: new Date(formData.taxAuthorityDueDate),
+        internalDueDate: new Date(formData.internalDueDate),
       }
 
       // Add optional client fields only if they have values
@@ -189,12 +213,6 @@ export function CreateDeclarationForm() {
       }
       if (formData.declarationNotes.trim()) {
         submitData.declarationNotes = formData.declarationNotes.trim()
-      }
-      if (formData.taxAuthorityDueDate) {
-        submitData.taxAuthorityDueDate = new Date(formData.taxAuthorityDueDate)
-      }
-      if (formData.internalDueDate) {
-        submitData.internalDueDate = new Date(formData.internalDueDate)
       }
 
       const result = await createDeclarationWithClient(submitData)
@@ -226,9 +244,10 @@ export function CreateDeclarationForm() {
   }
 
   const handlePhoneChange = (value: string) => {
-    // Allow only digits
+    // Allow only digits, format with dash
     const cleanValue = value.replace(/\D/g, "").slice(0, 10)
-    handleChange("phone", cleanValue)
+    const formattedValue = formatPhoneNumber(cleanValue)
+    handleChange("phone", formattedValue)
   }
 
   const renderClientStatusBadge = () => {
@@ -260,7 +279,7 @@ export function CreateDeclarationForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-4 lg:grid-cols-2">
+    <form onSubmit={handleSubmit} className="grid gap-4">
       {/* Client Details Card */}
       <Card>
         <CardHeader className="pb-2">
@@ -318,8 +337,8 @@ export function CreateDeclarationForm() {
             </div>
           </div>
 
-          {/* Row 2: Phone + Email (2 columns on desktop, stacked on mobile) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Row 2: Phone + Email + Address (3 columns on desktop, stacked on mobile) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label htmlFor="phone" className="text-sm">
                 {CLIENTS.form.phone} *
@@ -353,10 +372,6 @@ export function CreateDeclarationForm() {
                 <p className="text-xs text-destructive">{errors.email}</p>
               )}
             </div>
-          </div>
-
-          {/* Row 3: Address + Notes (2 columns on desktop, stacked on mobile) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="address" className="text-sm">
                 {CLIENTS.form.address}
@@ -367,16 +382,18 @@ export function CreateDeclarationForm() {
                 onChange={(e) => handleChange("address", e.target.value)}
               />
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="clientNotes" className="text-sm">
-                {CLIENTS.form.notes}
-              </Label>
-              <Input
-                id="clientNotes"
-                value={formData.clientNotes}
-                onChange={(e) => handleChange("clientNotes", e.target.value)}
-              />
-            </div>
+          </div>
+
+          {/* Row 3: Notes (full width) */}
+          <div className="space-y-1">
+            <Label htmlFor="clientNotes" className="text-sm">
+              {CLIENTS.form.notes}
+            </Label>
+            <Input
+              id="clientNotes"
+              value={formData.clientNotes}
+              onChange={(e) => handleChange("clientNotes", e.target.value)}
+            />
           </div>
         </CardContent>
       </Card>
@@ -387,51 +404,35 @@ export function CreateDeclarationForm() {
           <CardTitle className="text-base">פרטי הצהרה</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {/* Row 1: Year + Date + Subject (3 columns on desktop, stacked on mobile) */}
+          {/* Row 1: Year + Due Dates (3 columns on desktop, stacked on mobile) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label htmlFor="year" className="text-sm">
                 שנת מס *
               </Label>
-              <Input
-                id="year"
-                type="number"
-                value={formData.year}
-                onChange={(e) => handleChange("year", e.target.value)}
-              />
+              <Select
+                value={String(formData.year)}
+                onValueChange={(value) => handleChange("year", value)}
+              >
+                <SelectTrigger id="year">
+                  <SelectValue placeholder="בחר שנה" />
+                </SelectTrigger>
+                <SelectContent>
+                  {/* 4 years back to 1 year forward */}
+                  {Array.from({ length: 6 }, (_, i) => {
+                    const year = new Date().getFullYear() + 1 - i
+                    return (
+                      <SelectItem key={year} value={String(year)}>
+                        {year}
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="declarationDate" className="text-sm">
-                תאריך הצהרה *
-              </Label>
-              <Input
-                id="declarationDate"
-                type="date"
-                value={formData.declarationDate}
-                onChange={(e) => handleChange("declarationDate", e.target.value)}
-                className={errors.declarationDate ? "border-destructive" : ""}
-              />
-              {errors.declarationDate && (
-                <p className="text-xs text-destructive">{errors.declarationDate}</p>
-              )}
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="subject" className="text-sm">
-                נושא
-              </Label>
-              <Input
-                id="subject"
-                value={formData.subject}
-                onChange={(e) => handleChange("subject", e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Row 2: Due Dates (2 columns on desktop, stacked on mobile) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label htmlFor="taxAuthorityDueDate" className="text-sm">
-                דד-ליין רשות המסים
+                דד-ליין רשות המסים *
               </Label>
               <Input
                 id="taxAuthorityDueDate"
@@ -440,22 +441,30 @@ export function CreateDeclarationForm() {
                 onChange={(e) =>
                   handleChange("taxAuthorityDueDate", e.target.value)
                 }
+                className={errors.taxAuthorityDueDate ? "border-destructive" : ""}
               />
+              {errors.taxAuthorityDueDate && (
+                <p className="text-xs text-destructive">{errors.taxAuthorityDueDate}</p>
+              )}
             </div>
             <div className="space-y-1">
               <Label htmlFor="internalDueDate" className="text-sm">
-                דד-ליין פנימי
+                דד-ליין פנימי *
               </Label>
               <Input
                 id="internalDueDate"
                 type="date"
                 value={formData.internalDueDate}
                 onChange={(e) => handleChange("internalDueDate", e.target.value)}
+                className={errors.internalDueDate ? "border-destructive" : ""}
               />
+              {errors.internalDueDate && (
+                <p className="text-xs text-destructive">{errors.internalDueDate}</p>
+              )}
             </div>
           </div>
 
-          {/* Row 3: Declaration Notes (full width) */}
+          {/* Row 2: Declaration Notes (full width) */}
           <div className="space-y-1">
             <Label htmlFor="declarationNotes" className="text-sm">
               הערות להצהרה
@@ -469,8 +478,8 @@ export function CreateDeclarationForm() {
         </CardContent>
       </Card>
 
-      {/* Submit Button - spans both columns */}
-      <div className="lg:col-span-2 flex justify-end">
+      {/* Submit Button */}
+      <div className="flex justify-end">
         <Button type="submit" disabled={isSubmitting} size="lg">
           {isSubmitting ? (
             <>
