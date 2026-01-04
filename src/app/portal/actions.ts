@@ -4,6 +4,7 @@ import { eq, and } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { db } from "@/lib/db"
 import { declaration, firm, client, document, declarationStatusHistory } from "@/lib/schema"
+import { upload } from "@/lib/storage"
 
 // Token expiration duration in days
 const TOKEN_EXPIRATION_DAYS = 90
@@ -206,8 +207,11 @@ export async function uploadDocument(
   if (["mortgage", "loans"].includes(fileType)) category = "liabilities"
   if (["vehicle", "other_assets"].includes(fileType)) category = "other"
 
-  // Simulate file upload (would be Vercel Blob here)
-  const fileUrl = `https://fake-storage.com/${file.name}`
+  // Upload file to storage (Vercel Blob in production, local in dev)
+  const buffer = Buffer.from(await file.arrayBuffer())
+  const folder = `firms/${decl.firmId}/declarations/${declarationId}`
+  const result = await upload(buffer, file.name, folder)
+  const fileUrl = result.url
 
   // Include firmId for security
   await db.insert(document).values({

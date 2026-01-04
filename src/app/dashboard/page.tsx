@@ -12,51 +12,56 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { auth } from "@/lib/auth"
+import { db } from "@/lib/db"
+import { declaration, client } from "@/lib/schema"
+import { eq, desc, sql } from "drizzle-orm"
 import { DASHBOARD, DECLARATIONS } from "@/lib/constants/hebrew"
 import { formatDate } from "@/lib/utils"
 
-// Mock data - will be replaced with real data from database
-const mockStats = {
-  active: 12,
-  pending: 5,
-  completedMonth: 8,
-  nearDeadline: 3,
+async function getDashboardStats(firmId: string) {
+  const now = new Date()
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const nearDeadlineDate = new Date()
+  nearDeadlineDate.setDate(nearDeadlineDate.getDate() + 14) // 14 days from now
+
+  const [stats] = await db
+    .select({
+      total: sql<number>`count(*)::int`,
+      active: sql<number>`count(*) filter (where ${declaration.status} not in ('submitted', 'completed', 'draft'))::int`,
+      pending: sql<number>`count(*) filter (where ${declaration.status} in ('waiting_documents', 'documents_received'))::int`,
+      completedMonth: sql<number>`count(*) filter (where ${declaration.status} = 'submitted' and ${declaration.updatedAt} >= ${startOfMonth})::int`,
+      nearDeadline: sql<number>`count(*) filter (where ${declaration.taxAuthorityDueDate} <= ${nearDeadlineDate.toISOString().split('T')[0]} and ${declaration.taxAuthorityDueDate} >= ${now.toISOString().split('T')[0]} and ${declaration.status} not in ('submitted', 'completed'))::int`,
+    })
+    .from(declaration)
+    .where(eq(declaration.firmId, firmId))
+
+  return stats || { total: 0, active: 0, pending: 0, completedMonth: 0, nearDeadline: 0 }
 }
 
-const mockRecentDeclarations = [
-  {
-    id: "1",
-    clientName: "יוסי כהן",
-    createdAt: "2024-12-15",
-    deadline: "2025-04-15",
-    status: "waiting_documents" as const,
-    netWorth: 2500000,
-  },
-  {
-    id: "2",
-    clientName: "שרה לוי",
-    createdAt: "2024-12-10",
-    deadline: "2025-04-10",
-    status: "reviewing" as const,
-    netWorth: 1800000,
-  },
-  {
-    id: "3",
-    clientName: "דוד אברהמי",
-    createdAt: "2024-12-05",
-    deadline: "2025-04-05",
-    status: "draft" as const,
-    netWorth: 3200000,
-  },
-  {
-    id: "4",
-    clientName: "רחל מזרחי",
-    createdAt: "2024-11-28",
-    deadline: "2025-03-28",
-    status: "submitted" as const,
-    netWorth: 950000,
-  },
-]
+async function getRecentDeclarations(firmId: string, limit = 5) {
+  const results = await db
+    .select({
+      id: declaration.id,
+      createdAt: declaration.createdAt,
+      taxAuthorityDueDate: declaration.taxAuthorityDueDate,
+      status: declaration.status,
+      clientFirstName: client.firstName,
+      clientLastName: client.lastName,
+    })
+    .from(declaration)
+    .innerJoin(client, eq(declaration.clientId, client.id))
+    .where(eq(declaration.firmId, firmId))
+    .orderBy(desc(declaration.createdAt))
+    .limit(limit)
+
+  return results.map((r) => ({
+    id: r.id,
+    clientName: `${r.clientFirstName} ${r.clientLastName}`,
+    createdAt: r.createdAt,
+    deadline: r.taxAuthorityDueDate,
+    status: r.status || "draft",
+  }))
+}
 
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
@@ -69,6 +74,13 @@ const STATUS_COLORS: Record<string, string> = {
 export default async function DashboardPage() {
   const session = await auth.api.getSession({ headers: await headers() })
   const userName = session?.user?.name?.split(" ")[0] || "משתמש"
+  const firmId = (session?.user as { firmId?: string })?.firmId
+
+  // Get real data from database
+  const stats = firmId
+    ? await getDashboardStats(firmId)
+    : { active: 0, pending: 0, completedMonth: 0, nearDeadline: 0 }
+  const recentDeclarations = firmId ? await getRecentDeclarations(firmId) : []
 
   return (
     <div className="space-y-6">
@@ -94,28 +106,24 @@ export default async function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 animate-stagger">
         <StatCard
           title={DASHBOARD.stats.active}
-          value={mockStats.active}
+          value={stats.active}
           icon={FileText}
-          trend={{ value: 12, isPositive: true }}
         />
         <StatCard
           title={DASHBOARD.stats.pending}
-          value={mockStats.pending}
+          value={stats.pending}
           icon={Clock}
-          trend={{ value: 5, isPositive: false }}
         />
         <StatCard
           title={DASHBOARD.stats.completedMonth}
-          value={mockStats.completedMonth}
+          value={stats.completedMonth}
           icon={CheckCircle}
-          trend={{ value: 20, isPositive: true }}
         />
         <StatCard
           title={DASHBOARD.stats.nearDeadline}
-          value={mockStats.nearDeadline}
+          value={stats.nearDeadline}
           icon={AlertTriangle}
-          className={mockStats.nearDeadline > 0 ? "border-orange-500/50" : ""}
-          trend={{ value: 10, isPositive: false }}
+          className={stats.nearDeadline > 0 ? "border-orange-500/50" : ""}
         />
       </div>
 
@@ -128,57 +136,69 @@ export default async function DashboardPage() {
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b text-sm text-muted-foreground">
-                  <th className="pb-3 text-start font-medium">
-                    {DECLARATIONS.tableHeaders.client}
-                  </th>
-                  <th className="pb-3 text-start font-medium">
-                    {DECLARATIONS.tableHeaders.createdAt}
-                  </th>
-                  <th className="pb-3 text-start font-medium">
-                    {DECLARATIONS.tableHeaders.deadline}
-                  </th>
-                  <th className="pb-3 text-start font-medium">
-                    {DECLARATIONS.tableHeaders.status}
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockRecentDeclarations.map((declaration) => (
-                  <tr
-                    key={declaration.id}
-                    className="border-b last:border-0 hover:bg-muted/50"
-                  >
-                    <td className="py-3">
-                      <Link
-                        href={`/dashboard/declarations/${declaration.id}`}
-                        className="font-medium hover:underline"
-                      >
-                        {declaration.clientName}
-                      </Link>
-                    </td>
-                    <td className="py-3 text-muted-foreground" dir="ltr">
-                      {formatDate(declaration.createdAt)}
-                    </td>
-                    <td className="py-3 text-muted-foreground" dir="ltr">
-                      {formatDate(declaration.deadline)}
-                    </td>
-                    <td className="py-3">
-                      <Badge
-                        variant="secondary"
-                        className={STATUS_COLORS[declaration.status]}
-                      >
-                        {DECLARATIONS.status[declaration.status]}
-                      </Badge>
-                    </td>
+          {recentDeclarations.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>אין הצהרות עדיין</p>
+              <Button asChild variant="link" className="mt-2">
+                <Link href="/dashboard/declarations/new">
+                  צור הצהרה ראשונה
+                </Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b text-sm text-muted-foreground">
+                    <th className="pb-3 text-start font-medium">
+                      {DECLARATIONS.tableHeaders.client}
+                    </th>
+                    <th className="pb-3 text-start font-medium">
+                      {DECLARATIONS.tableHeaders.createdAt}
+                    </th>
+                    <th className="pb-3 text-start font-medium">
+                      {DECLARATIONS.tableHeaders.deadline}
+                    </th>
+                    <th className="pb-3 text-start font-medium">
+                      {DECLARATIONS.tableHeaders.status}
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {recentDeclarations.map((decl) => (
+                    <tr
+                      key={decl.id}
+                      className="border-b last:border-0 hover:bg-muted/50"
+                    >
+                      <td className="py-3">
+                        <Link
+                          href={`/dashboard/declarations/${decl.id}`}
+                          className="font-medium hover:underline"
+                        >
+                          {decl.clientName}
+                        </Link>
+                      </td>
+                      <td className="py-3 text-muted-foreground" dir="ltr">
+                        {formatDate(decl.createdAt)}
+                      </td>
+                      <td className="py-3 text-muted-foreground" dir="ltr">
+                        {decl.deadline ? formatDate(decl.deadline) : "-"}
+                      </td>
+                      <td className="py-3">
+                        <Badge
+                          variant="secondary"
+                          className={STATUS_COLORS[decl.status]}
+                        >
+                          {DECLARATIONS.status[decl.status as keyof typeof DECLARATIONS.status]}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
