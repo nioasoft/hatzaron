@@ -150,18 +150,6 @@ export default function DeclarationDetailLoading() {
               </div>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <Skeleton className="h-5 w-20" />
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <Skeleton className="h-4 w-8" />
-                <Skeleton className="h-4 w-24" />
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

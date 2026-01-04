@@ -200,6 +200,14 @@ export default async function DeclarationDetailPage({
 
               {/* Contact info */}
               <div className="flex flex-wrap items-center gap-4 text-sm">
+                {declaration.client.idNumber && (
+                  <span className="flex items-center gap-1.5 text-muted-foreground" dir="ltr">
+                    ת.ז. {declaration.client.idNumber}
+                  </span>
+                )}
+                {declaration.client.idNumber && (declaration.client.phone || declaration.client.email) && (
+                  <Separator orientation="vertical" className="h-4" />
+                )}
                 {declaration.client.phone && (
                   <a
                     href={`tel:${declaration.client.phone}`}
@@ -420,20 +428,6 @@ export default async function DeclarationDetailPage({
             </Card>
           )}
 
-          {/* Client ID */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">פרטי לקוח</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">ת.ז.</span>
-                <span className="font-medium" dir="ltr">
-                  {declaration.client.idNumber || "-"}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
