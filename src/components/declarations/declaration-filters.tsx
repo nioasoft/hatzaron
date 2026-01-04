@@ -20,6 +20,7 @@ interface DeclarationFiltersProps {
   accountants?: Accountant[]
   isAdmin?: boolean
   years?: number[]
+  currentYear?: number
 }
 
 const STATUS_OPTIONS = [
@@ -47,6 +48,7 @@ export function DeclarationFilters({
   accountants = [],
   isAdmin = false,
   years = [],
+  currentYear = 2026,
 }: DeclarationFiltersProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -105,7 +107,6 @@ export function DeclarationFilters({
     assignedTo !== "all"
 
   // Generate year options dynamically
-  const currentYear = new Date().getFullYear()
   const yearOptions = years.length > 0
     ? years
     : Array.from({ length: 5 }, (_, i) => currentYear - i)

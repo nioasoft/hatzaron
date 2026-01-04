@@ -77,6 +77,7 @@ export default async function DeclarationsPage({ searchParams }: PageProps) {
       <DeclarationFilters
         accountants={accountants}
         isAdmin={isAdmin}
+        currentYear={new Date().getFullYear()}
       />
 
       {/* Declarations Table */}
