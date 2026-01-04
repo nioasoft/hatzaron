@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { auth, type SessionUser } from "@/lib/auth";
 
 /**
  * Protected routes that require authentication.
@@ -55,4 +55,27 @@ export function isProtectedRoute(path: string): boolean {
   return protectedRoutes.some(
     (route) => path === route || path.startsWith(`${route}/`)
   );
+}
+
+/**
+ * Gets the firmId from the current session.
+ * Returns null if not authenticated or no firm associated.
+ */
+export async function getFirmId(): Promise<string | null> {
+  const session = await getSession();
+  if (!session?.user) return null;
+  return (session.user as SessionUser).firmId || null;
+}
+
+/**
+ * Requires a firmId from the current session.
+ * Throws an error if not authenticated or no firm associated.
+ */
+export async function requireFirmId(): Promise<string> {
+  const session = await requireAuth();
+  const firmId = (session.user as SessionUser).firmId;
+  if (!firmId) {
+    throw new Error("No firm associated with user");
+  }
+  return firmId;
 }

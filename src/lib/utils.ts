@@ -67,3 +67,59 @@ export function getDaysRemainingColor(days: number | null): string {
   if (days <= 30) return "text-yellow-600 dark:text-yellow-400";
   return "text-green-600 dark:text-green-400";
 }
+
+/**
+ * Validate Israeli ID number (תעודת זהות)
+ * Uses the official Luhn-like algorithm with alternating weights 1,2
+ *
+ * @param idNumber - The ID number to validate (can include non-digit characters)
+ * @returns true if valid, false otherwise
+ */
+export function validateIsraeliId(idNumber: string): boolean {
+  // Remove non-digit characters and trim
+  const cleanId = idNumber.replace(/\D/g, "")
+
+  // Must be between 1-9 digits (will be padded to 9)
+  if (cleanId.length === 0 || cleanId.length > 9) {
+    return false
+  }
+
+  // Pad with leading zeros to 9 digits
+  const paddedId = cleanId.padStart(9, "0")
+
+  // Calculate checksum using alternating weights 1,2,1,2...
+  let sum = 0
+  for (let i = 0; i < 9; i++) {
+    const digit = parseInt(paddedId.charAt(i), 10)
+    const weight = (i % 2) + 1 // alternates: 1,2,1,2,1,2,1,2,1
+    let product = digit * weight
+
+    // If product > 9, sum its digits (equivalent to product - 9 for single-digit sums)
+    if (product > 9) {
+      product = Math.floor(product / 10) + (product % 10)
+    }
+
+    sum += product
+  }
+
+  // Valid if sum is divisible by 10
+  return sum % 10 === 0
+}
+
+/**
+ * Format Israeli phone number with dash (050-1234567)
+ * Handles both 10-digit cell phones (05X) and landlines
+ */
+export function formatPhoneNumber(phone: string): string {
+  const cleanPhone = phone.replace(/\D/g, "")
+
+  if (cleanPhone.length === 10) {
+    // Cell phone: 05X-XXXXXXX
+    return `${cleanPhone.slice(0, 3)}-${cleanPhone.slice(3)}`
+  } else if (cleanPhone.length === 9) {
+    // Landline: 0X-XXXXXXX
+    return `${cleanPhone.slice(0, 2)}-${cleanPhone.slice(2)}`
+  }
+
+  return cleanPhone
+}

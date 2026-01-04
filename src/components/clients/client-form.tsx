@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { CLIENTS, ACTIONS, VALIDATION } from "@/lib/constants/hebrew"
+import { validateIsraeliId, formatPhoneNumber } from "@/lib/utils"
 
 export interface ClientFormData {
   firstName: string
@@ -55,7 +56,7 @@ export function ClientForm({
     }
     if (!formData.idNumber.trim()) {
       newErrors.idNumber = VALIDATION.required
-    } else if (!/^\d{9}$/.test(formData.idNumber.replace(/\D/g, ""))) {
+    } else if (!validateIsraeliId(formData.idNumber)) {
       newErrors.idNumber = VALIDATION.invalidIdNumber
     }
     if (!formData.phone.trim()) {
@@ -104,6 +105,39 @@ export function ClientForm({
     }
   }
 
+  // Special handler for ID number with real-time validation
+  const handleIdNumberChange = (value: string) => {
+    // Allow only digits, max 9 characters
+    const cleanValue = value.replace(/\D/g, "").slice(0, 9)
+    setFormData((prev) => ({ ...prev, idNumber: cleanValue }))
+
+    // Validate immediately when 9 digits are entered
+    if (cleanValue.length === 9) {
+      if (!validateIsraeliId(cleanValue)) {
+        setErrors((prev) => ({ ...prev, idNumber: VALIDATION.invalidIdNumber }))
+      } else {
+        setErrors((prev) => ({ ...prev, idNumber: "" }))
+      }
+    } else if (errors.idNumber) {
+      // Clear error while typing (less than 9 digits)
+      setErrors((prev) => ({ ...prev, idNumber: "" }))
+    }
+  }
+
+  // Special handler for phone number with formatting
+  const handlePhoneChange = (value: string) => {
+    // Remove non-digits and limit to 10 characters
+    const cleanValue = value.replace(/\D/g, "").slice(0, 10)
+    // Format with dash for display
+    const formattedValue = formatPhoneNumber(cleanValue)
+    setFormData((prev) => ({ ...prev, phone: formattedValue }))
+
+    // Clear error when user starts typing
+    if (errors.phone) {
+      setErrors((prev) => ({ ...prev, phone: "" }))
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -146,10 +180,11 @@ export function ClientForm({
               <Input
                 id="idNumber"
                 value={formData.idNumber}
-                onChange={(e) => handleChange("idNumber", e.target.value)}
+                onChange={(e) => handleIdNumberChange(e.target.value)}
                 className={errors.idNumber ? "border-destructive" : ""}
                 placeholder="123456789"
                 dir="ltr"
+                maxLength={9}
               />
               {errors.idNumber && (
                 <p className="text-sm text-destructive">{errors.idNumber}</p>
@@ -160,9 +195,9 @@ export function ClientForm({
               <Input
                 id="phone"
                 value={formData.phone}
-                onChange={(e) => handleChange("phone", e.target.value)}
+                onChange={(e) => handlePhoneChange(e.target.value)}
                 className={errors.phone ? "border-destructive" : ""}
-                placeholder="0501234567"
+                placeholder="050-1234567"
                 dir="ltr"
               />
               {errors.phone && (

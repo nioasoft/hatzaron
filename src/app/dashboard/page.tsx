@@ -23,13 +23,18 @@ async function getDashboardStats(firmId: string) {
   const nearDeadlineDate = new Date()
   nearDeadlineDate.setDate(nearDeadlineDate.getDate() + 14) // 14 days from now
 
+  // Convert dates to ISO strings for SQL
+  const startOfMonthISO = startOfMonth.toISOString()
+  const nearDeadlineDateStr = nearDeadlineDate.toISOString().split('T')[0]
+  const nowDateStr = now.toISOString().split('T')[0]
+
   const [stats] = await db
     .select({
       total: sql<number>`count(*)::int`,
       active: sql<number>`count(*) filter (where ${declaration.status} not in ('submitted', 'completed', 'draft'))::int`,
       pending: sql<number>`count(*) filter (where ${declaration.status} in ('waiting_documents', 'documents_received'))::int`,
-      completedMonth: sql<number>`count(*) filter (where ${declaration.status} = 'submitted' and ${declaration.updatedAt} >= ${startOfMonth})::int`,
-      nearDeadline: sql<number>`count(*) filter (where ${declaration.taxAuthorityDueDate} <= ${nearDeadlineDate.toISOString().split('T')[0]} and ${declaration.taxAuthorityDueDate} >= ${now.toISOString().split('T')[0]} and ${declaration.status} not in ('submitted', 'completed'))::int`,
+      completedMonth: sql<number>`count(*) filter (where ${declaration.status} = 'submitted' and ${declaration.updatedAt} >= ${startOfMonthISO}::timestamp)::int`,
+      nearDeadline: sql<number>`count(*) filter (where ${declaration.taxAuthorityDueDate} <= ${nearDeadlineDateStr} and ${declaration.taxAuthorityDueDate} >= ${nowDateStr} and ${declaration.status} not in ('submitted', 'completed'))::int`,
     })
     .from(declaration)
     .where(eq(declaration.firmId, firmId))

@@ -198,7 +198,7 @@ export default async function DeclarationDetailPage({
                 <PriorityIndicator priority={declaration.priority} />
               </div>
 
-              {/* Contact info */}
+              {/* Contact info + Portal */}
               <div className="flex flex-wrap items-center gap-4 text-sm">
                 {declaration.client.idNumber && (
                   <span className="flex items-center gap-1.5 text-muted-foreground" dir="ltr">
@@ -227,6 +227,16 @@ export default async function DeclarationDetailPage({
                     <Mail className="h-4 w-4" />
                     {declaration.client.email}
                   </a>
+                )}
+                {declaration.publicToken && (
+                  <>
+                    <Separator orientation="vertical" className="h-4" />
+                    <div className="flex items-center gap-1.5">
+                      <ExternalLink className="h-4 w-4 text-primary" />
+                      <span className="text-muted-foreground">פורטל:</span>
+                      <PortalLinkButton token={declaration.publicToken} />
+                    </div>
+                  </>
                 )}
               </div>
             </div>
@@ -310,125 +320,98 @@ export default async function DeclarationDetailPage({
         </div>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main Content - 2/3 */}
-        <div className="space-y-6 lg:col-span-2">
-          {/* Documents Card */}
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  מסמכים
-                </CardTitle>
-                {documentCount > 0 && (
-                  <Badge variant="secondary">
-                    {documentCount} מסמכים ב-{categoryCount} קטגוריות
-                  </Badge>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent>
-              {Object.keys(documentsByCategory).length > 0 ? (
-                <div className="space-y-6">
-                  {Object.entries(documentsByCategory).map(([categoryKey, docs]) => {
-                    const categoryLabel =
-                      DECLARATIONS.categories?.[
-                        categoryKey as keyof typeof DECLARATIONS.categories
-                      ] || categoryKey
-                    return (
-                      <div key={categoryKey} className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-sm font-semibold text-foreground">
-                            {categoryLabel}
-                          </h3>
-                          <Badge variant="outline" className="text-xs">
-                            {docs.length}
-                          </Badge>
-                        </div>
-                        <div className="rounded-lg border bg-muted/30">
-                          {docs.map((doc, idx) => (
-                            <div
-                              key={doc.id}
-                              className={`flex items-center justify-between p-3 gap-3 ${
-                                idx !== docs.length - 1 ? "border-b" : ""
-                              }`}
-                            >
-                              <div className="flex items-center gap-3 min-w-0 flex-1">
-                                <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
-                                  <FileText className="h-4 w-4 text-primary" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="font-medium text-sm truncate">
-                                    {doc.fileName}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {formatDateLong(doc.createdAt)}
-                                  </p>
-                                </div>
-                              </div>
-                              <Button variant="ghost" size="sm" asChild className="shrink-0">
-                                <Link
-                                  href={doc.fileUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                </Link>
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-10 text-muted-foreground">
-                  <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                    <FileText className="h-6 w-6" />
-                  </div>
-                  <p className="font-medium">אין מסמכים</p>
-                  <p className="text-sm mt-1">עדיין לא הועלו מסמכים להצהרה זו</p>
-                </div>
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Documents Card */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                מסמכים
+              </CardTitle>
+              {documentCount > 0 && (
+                <Badge variant="secondary">
+                  {documentCount} מסמכים ב-{categoryCount} קטגוריות
+                </Badge>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Unified Timeline */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">היסטוריה</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <UnifiedTimeline declarationId={declaration.id} />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sidebar - 1/3 (Simplified) */}
-        <div className="space-y-6">
-          {/* Portal Link */}
-          {declaration.publicToken && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">פורטל לקוח</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-lg border bg-gradient-to-l from-primary/5 to-transparent p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <ExternalLink className="h-4 w-4 text-primary" />
-                      <span className="font-medium">קישור לפורטל</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {Object.keys(documentsByCategory).length > 0 ? (
+              <div className="space-y-6">
+                {Object.entries(documentsByCategory).map(([categoryKey, docs]) => {
+                  const categoryLabel =
+                    DECLARATIONS.categories?.[
+                      categoryKey as keyof typeof DECLARATIONS.categories
+                    ] || categoryKey
+                  return (
+                    <div key={categoryKey} className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-sm font-semibold text-foreground">
+                          {categoryLabel}
+                        </h3>
+                        <Badge variant="outline" className="text-xs">
+                          {docs.length}
+                        </Badge>
+                      </div>
+                      <div className="rounded-lg border bg-muted/30">
+                        {docs.map((doc, idx) => (
+                          <div
+                            key={doc.id}
+                            className={`flex items-center justify-between p-3 gap-3 ${
+                              idx !== docs.length - 1 ? "border-b" : ""
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                              <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                                <FileText className="h-4 w-4 text-primary" />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-sm truncate">
+                                  {doc.fileName}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatDateLong(doc.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+                            <Button variant="ghost" size="sm" asChild className="shrink-0">
+                              <Link
+                                href={doc.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <PortalLinkButton token={declaration.publicToken} />
-                  </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="text-center py-10 text-muted-foreground">
+                <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                  <FileText className="h-6 w-6" />
                 </div>
-              </CardContent>
-            </Card>
-          )}
+                <p className="font-medium">אין מסמכים</p>
+                <p className="text-sm mt-1">עדיין לא הועלו מסמכים להצהרה זו</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        </div>
+        {/* Timeline Card */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">היסטוריה</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <UnifiedTimeline declarationId={declaration.id} />
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

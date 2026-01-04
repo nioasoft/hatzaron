@@ -5,10 +5,32 @@ import { db } from "./db"
 import { firm, user } from "./schema"
 import { eq } from "drizzle-orm"
 
+// Define session user type with custom fields
+export interface SessionUser {
+  id: string
+  name: string
+  email: string
+  image?: string | null
+  firmId?: string | null
+  role?: string | null
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
   }),
+  user: {
+    additionalFields: {
+      firmId: {
+        type: "string",
+        required: false,
+      },
+      role: {
+        type: "string",
+        required: false,
+      },
+    },
+  },
   plugins: [
     admin({
       defaultRole: "user",
