@@ -1,4 +1,4 @@
-import { ArrowRight, FileText, UserCheck, Clock } from "lucide-react"
+import { ArrowRight, FileText, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -26,6 +26,7 @@ export default function DeclarationDetailLoading() {
 
       {/* Main Header Card Skeleton */}
       <Card className="overflow-hidden">
+        {/* Client Info Section */}
         <div className="bg-gradient-to-l from-primary/5 to-transparent p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-3 flex-1">
@@ -49,6 +50,19 @@ export default function DeclarationDetailLoading() {
               <Skeleton className="h-9 w-28" />
               <Skeleton className="h-9 w-32" />
             </div>
+          </div>
+        </div>
+
+        {/* Office Status Section */}
+        <div className="border-t bg-muted/30 p-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="rounded-lg border bg-background/50 p-3">
+                <Skeleton className="h-3 w-24 mb-2" />
+                <Skeleton className="h-5 w-32 mb-1" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            ))}
           </div>
         </div>
       </Card>
@@ -93,32 +107,6 @@ export default function DeclarationDetailLoading() {
                     </div>
                   </div>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Office Status Card Skeleton */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <UserCheck className="h-4 w-4" />
-                סטטוס וניהול
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[1, 2].map((i) => (
-                  <div key={i} className="rounded-lg border bg-muted/30 p-3">
-                    <Skeleton className="h-3 w-24 mb-2" />
-                    <Skeleton className="h-5 w-32 mb-1" />
-                    <Skeleton className="h-3 w-20" />
-                  </div>
-                ))}
-              </div>
-              <Separator />
-              <div className="space-y-2">
-                <Skeleton className="h-3 w-20" />
-                <Skeleton className="h-9 w-full" />
               </div>
             </CardContent>
           </Card>

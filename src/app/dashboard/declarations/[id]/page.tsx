@@ -1,21 +1,22 @@
+import { differenceInDays } from "date-fns"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import {
+  AlertTriangle,
   ArrowRight,
-  Edit,
-  FileText,
   Calendar,
   Clock,
-  AlertCircle,
+  Edit,
   ExternalLink,
-  Phone,
+  FileText,
   Mail,
+  Phone,
+  UserCheck,
 } from "lucide-react"
-
 import { getDeclarationDetails, getFirmAccountants } from "@/app/dashboard/declarations/actions"
+import { AssignAccountantSelect } from "@/components/declarations/assign-accountant-select"
 import { DeclarationStatusBadge } from "@/components/declarations/declaration-status"
 import { LogCommunicationDialog } from "@/components/declarations/log-communication-dialog"
-import { OfficeStatusCard } from "@/components/declarations/office-status-card"
 import { PortalLinkButton } from "@/components/declarations/portal-link-button"
 import { SendReminderDialog } from "@/components/declarations/send-reminder-dialog"
 import { StatusChangeDialog } from "@/components/declarations/status-change-dialog"
@@ -25,9 +26,9 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { DECLARATIONS, ACTIONS } from "@/lib/constants/hebrew"
+import { DECLARATIONS, ACTIONS, PENALTY } from "@/lib/constants/hebrew"
 import { getSession } from "@/lib/session"
-import { formatDateLong } from "@/lib/utils"
+import { cn, formatDateLong } from "@/lib/utils"
 
 interface DeclarationDetailPageParams {
   id: string
@@ -37,7 +38,7 @@ function PriorityIndicator({ priority }: { priority: string }) {
   if (priority === "critical") {
     return (
       <div className="flex items-center gap-2 text-destructive">
-        <AlertCircle className="h-4 w-4" />
+        <AlertTriangle className="h-4 w-4" />
         <span className="font-medium">קריטי</span>
       </div>
     )
@@ -51,6 +52,48 @@ function PriorityIndicator({ priority }: { priority: string }) {
     )
   }
   return <span className="text-muted-foreground">רגיל</span>
+}
+
+function getDaysRemaining(deadline: Date | string | null) {
+  if (!deadline) return null
+  const deadlineDate = typeof deadline === "string" ? new Date(deadline) : deadline
+  const days = differenceInDays(deadlineDate, new Date())
+  return {
+    days,
+    isOverdue: days < 0,
+    isUrgent: days <= 7 && days >= 0,
+    label: days < 0 ? `איחור של ${Math.abs(days)} ימים` : days === 0 ? "היום" : `עוד ${days} ימים`,
+  }
+}
+
+function DeadlineDisplay({ label, date }: { label: string; date: Date | string | null }) {
+  const daysInfo = getDaysRemaining(date)
+  return (
+    <div className="rounded-lg border bg-background/50 p-3">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+        <Calendar className="h-3.5 w-3.5" />
+        {label}
+      </div>
+      {date ? (
+        <>
+          <div className="font-medium text-sm" dir="ltr">{formatDateLong(date)}</div>
+          {daysInfo && (
+            <div className={cn(
+              "flex items-center gap-1 text-xs mt-1",
+              daysInfo.isOverdue && "text-destructive",
+              daysInfo.isUrgent && !daysInfo.isOverdue && "text-orange-600 dark:text-orange-400",
+              !daysInfo.isOverdue && !daysInfo.isUrgent && "text-green-600 dark:text-green-400"
+            )}>
+              <Clock className={cn("h-3 w-3", daysInfo.isOverdue && "animate-pulse")} />
+              {daysInfo.label}
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="text-muted-foreground text-sm">לא הוגדר</div>
+      )}
+    </div>
+  )
 }
 
 export default async function DeclarationDetailPage({
@@ -199,6 +242,64 @@ export default async function DeclarationDetailPage({
             </div>
           </div>
         </div>
+
+        {/* Office Status Section - Always visible */}
+        <div className="border-t bg-muted/30 p-6">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {/* Deadlines */}
+            <DeadlineDisplay label="דדליין רשות המסים" date={declaration.taxAuthorityDueDate} />
+            <DeadlineDisplay label="דדליין פנימי" date={declaration.internalDueDate} />
+
+            {/* Assigned Accountant */}
+            <div className="rounded-lg border bg-background/50 p-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                <UserCheck className="h-3.5 w-3.5" />
+                רו״ח אחראי
+              </div>
+              <AssignAccountantSelect
+                declarationId={declaration.id}
+                currentAssignee={declaration.assignedTo}
+                accountants={accountants}
+                isAdmin={isAdmin}
+              />
+            </div>
+
+            {/* Penalty Alert */}
+            {(declaration.wasSubmittedLate || declaration.penaltyAmount || declaration.penaltyStatus) ? (
+              <div className="rounded-lg border border-red-200 dark:border-red-900 bg-red-50/50 dark:bg-red-950/20 p-3">
+                <div className="flex items-center gap-2 text-destructive mb-2">
+                  <AlertTriangle className="h-3.5 w-3.5 animate-pulse" />
+                  <span className="text-xs font-medium">{PENALTY.title}</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {declaration.wasSubmittedLate && (
+                    <Badge variant="destructive" className="text-xs">
+                      {PENALTY.lateSubmission.indicator}
+                    </Badge>
+                  )}
+                  {declaration.penaltyAmount && (
+                    <Badge variant="outline" className="text-xs border-red-200 dark:border-red-800">
+                      ₪{Number(declaration.penaltyAmount).toLocaleString()}
+                    </Badge>
+                  )}
+                  {declaration.penaltyStatus && (
+                    <Badge variant="secondary" className="text-xs">
+                      {PENALTY.status[declaration.penaltyStatus as keyof typeof PENALTY.status] || declaration.penaltyStatus}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border bg-background/50 p-3">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  קנסות
+                </div>
+                <div className="text-sm text-green-600 dark:text-green-400">ללא קנסות</div>
+              </div>
+            )}
+          </div>
+        </div>
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -286,20 +387,7 @@ export default async function DeclarationDetailPage({
             </CardContent>
           </Card>
 
-          {/* Office Status Card (NEW) */}
-          <OfficeStatusCard
-            declarationId={declaration.id}
-            taxAuthorityDueDate={declaration.taxAuthorityDueDate}
-            internalDueDate={declaration.internalDueDate}
-            assignedTo={declaration.assignedTo}
-            accountants={accountants}
-            isAdmin={isAdmin}
-            wasSubmittedLate={declaration.wasSubmittedLate}
-            penaltyAmount={declaration.penaltyAmount}
-            penaltyStatus={declaration.penaltyStatus}
-          />
-
-          {/* Unified Timeline (NEW) */}
+          {/* Unified Timeline */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">היסטוריה</CardTitle>
