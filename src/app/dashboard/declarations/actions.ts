@@ -142,8 +142,10 @@ export async function createDeclaration(data: CreateDeclarationData) {
   const firmId = (session.user as any).firmId
   if (!firmId) throw new Error("No firm associated with user")
 
-  // Generate public token
+  // Generate public token with 90-day expiration
   const publicToken = randomBytes(24).toString("hex")
+  const tokenExpiresAt = new Date()
+  tokenExpiresAt.setDate(tokenExpiresAt.getDate() + 90)
 
   const newDeclaration = await db
     .insert(declaration)
@@ -157,6 +159,7 @@ export async function createDeclaration(data: CreateDeclarationData) {
       subject: data.subject,
       notes: data.notes,
       publicToken: publicToken,
+      publicTokenExpiresAt: tokenExpiresAt,
       status: "sent", // Assuming creating means we generated the link to send
       data: {}, // Empty initial data
     })
@@ -225,7 +228,7 @@ export async function getDeclarationDetails(id: string): Promise<DeclarationDeta
   const firmId = (session.user as any).firmId
   if (!firmId) return null
 
-  // Fetch declaration with client
+  // Fetch declaration with client - include firmId in query for security
   const result = await db
     .select({
       declaration: declaration,
@@ -233,16 +236,16 @@ export async function getDeclarationDetails(id: string): Promise<DeclarationDeta
     })
     .from(declaration)
     .innerJoin(client, eq(declaration.clientId, client.id))
-    .where(eq(declaration.id, id))
+    .where(and(
+      eq(declaration.id, id),
+      eq(declaration.firmId, firmId) // Security: verify ownership in query
+    ))
     .limit(1)
 
   if (result.length === 0) return null
-  
+
   const data = result[0]
   if (!data) return null
-  
-  // Ensure firm ownership
-  if (data.declaration.firmId !== firmId) return null
 
   // Fetch documents
   const docs = await db
@@ -927,8 +930,10 @@ export async function createDeclarationWithClient(
       clientId = newClient[0]!.id
     }
 
-    // Generate public token
+    // Generate public token with 90-day expiration
     const publicToken = randomBytes(24).toString("hex")
+    const tokenExpiresAt = new Date()
+    tokenExpiresAt.setDate(tokenExpiresAt.getDate() + 90)
 
     // Create declaration
     const newDeclaration = await db
@@ -943,6 +948,7 @@ export async function createDeclarationWithClient(
         subject: data.subject,
         notes: data.declarationNotes || null,
         publicToken: publicToken,
+        publicTokenExpiresAt: tokenExpiresAt,
         status: "sent",
         data: {},
       })

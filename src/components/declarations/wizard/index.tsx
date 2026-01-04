@@ -122,9 +122,9 @@ export function DeclarationWizard({ initialUploadedFiles, declarationId, publicT
   const handleFileUpload = async (fileId: string, file: File) => {
     const formData = new FormData()
     formData.append("file", file)
-    
+
     try {
-      await uploadDocument(declarationId, fileId, formData)
+      await uploadDocument(declarationId, publicToken, fileId, formData)
       
       setUploadedFiles(prev => ({
         ...prev,

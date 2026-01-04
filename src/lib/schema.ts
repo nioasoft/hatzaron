@@ -19,6 +19,8 @@ export const firm = pgTable("firm", {
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
+  // Soft Delete
+  deletedAt: timestamp("deleted_at"),
 });
 
 // --- Auth Tables (Better Auth) ---
@@ -36,7 +38,7 @@ export const user = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
-    
+
     // Admin plugin & Role fields
     role: text("role").default("user"), // 'super_admin', 'firm_admin', 'firm_employee', 'client'
     banned: boolean("banned").default(false),
@@ -115,128 +117,173 @@ export const verification = pgTable("verification", {
 // --- Business Logic Tables ---
 
 // Clients: The entities served by the Firm
-export const client = pgTable("client", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  firmId: text("firm_id").notNull().references(() => firm.id, { onDelete: "cascade" }),
-  userId: text("user_id").references(() => user.id), // Link to auth user once registered
-  
-  firstName: text("first_name").notNull(),
-  lastName: text("last_name").notNull(),
-  idNumber: text("id_number"), // Teudat Zehut
-  email: text("email").notNull(),
-  phone: text("phone"),
-  address: text("address"),
-  
-  status: text("status").default("active"), // 'active', 'inactive', 'lead'
-  notes: text("notes"),
-  
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-});
+export const client = pgTable(
+  "client",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    firmId: text("firm_id").notNull().references(() => firm.id, { onDelete: "cascade" }),
+    userId: text("user_id").references(() => user.id), // Link to auth user once registered
+
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    idNumber: text("id_number"), // Teudat Zehut
+    email: text("email").notNull(),
+    phone: text("phone"),
+    address: text("address"),
+
+    status: text("status").default("active"), // 'active', 'inactive', 'lead'
+    notes: text("notes"),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    // Soft Delete
+    deletedAt: timestamp("deleted_at"),
+  },
+  (table) => [
+    index("client_firm_id_idx").on(table.firmId),
+    index("client_id_number_firm_idx").on(table.idNumber, table.firmId),
+  ]
+);
 
 // Declarations: Specific Capital Declaration instances
-export const declaration = pgTable("declaration", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  clientId: text("client_id").notNull().references(() => client.id, { onDelete: "cascade" }),
-  firmId: text("firm_id").notNull().references(() => firm.id), // Denormalized for query perf
-  
-  // Basic Info
-  year: integer("year"), // The tax year related to the declaration
-  declarationDate: timestamp("declaration_date"), // The specific "cut-off" date
-  subject: text("subject").default("הצהרת הון"),
-  notes: text("notes"),
-  
-  // Portal Access
-  publicToken: text("public_token").unique(), // For public access without login
-  portalAccessedAt: timestamp("portal_accessed_at"),
-  portalAccessCount: integer("portal_access_count").default(0),
-  
-  // Assignment & Priority
-  priority: text("priority").default("normal"), // 'normal', 'urgent', 'critical'
-  assignedTo: text("assigned_to").references(() => user.id), // Firm employee
-  assignedAt: timestamp("assigned_at"),
+export const declaration = pgTable(
+  "declaration",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    clientId: text("client_id").notNull().references(() => client.id, { onDelete: "cascade" }),
+    firmId: text("firm_id").notNull().references(() => firm.id), // Denormalized for query perf
 
-  // Status
-  status: text("status").default("draft"), 
-  // 'draft', 'sent', 'in_progress', 'waiting_documents', 'documents_received', 
-  // 'reviewing', 'in_preparation', 'pending_approval', 'submitted', 'waiting'
+    // Basic Info
+    year: integer("year"), // The tax year related to the declaration
+    declarationDate: timestamp("declaration_date"), // The specific "cut-off" date
+    subject: text("subject").default("הצהרת הון"),
+    notes: text("notes"),
 
-  // Deadlines
-  taxAuthorityDueDate: date("tax_authority_due_date"),
-  internalDueDate: date("internal_due_date"),
+    // Portal Access
+    publicToken: text("public_token").unique(), // For public access without login
+    publicTokenExpiresAt: timestamp("public_token_expires_at"), // Token expiration (90 days default)
+    publicTokenRenewedAt: timestamp("public_token_renewed_at"), // Last renewal timestamp
+    portalAccessedAt: timestamp("portal_accessed_at"),
+    portalAccessCount: integer("portal_access_count").default(0),
 
-  // Submission
-  submittedAt: timestamp("submitted_at"),
-  submissionScreenshotPath: text("submission_screenshot_path"),
-  wasSubmittedLate: boolean("was_submitted_late").default(false),
+    // Assignment & Priority
+    priority: text("priority").default("normal"), // 'normal', 'urgent', 'critical'
+    assignedTo: text("assigned_to").references(() => user.id), // Firm employee
+    assignedAt: timestamp("assigned_at"),
 
-  // Penalties (if submitted late)
-  penaltyAmount: numeric("penalty_amount"),
-  penaltyStatus: text("penalty_status"), // 'received', 'appeal_submitted', 'cancelled', 'paid_by_client', 'paid_by_office'
-  penaltyReceivedDate: date("penalty_received_date"),
-  penaltyNotes: text("penalty_notes"),
-  appealDate: date("appeal_date"),
-  appealNotes: text("appeal_notes"),
-  penaltyPaidDate: date("penalty_paid_date"),
-  penaltyPaidAmount: numeric("penalty_paid_amount"),
-  penaltyPaidBy: text("penalty_paid_by"), // 'client', 'office'
-  
-  data: jsonb("data").default({}),
+    // Status
+    status: text("status").default("draft"),
+    // 'draft', 'sent', 'in_progress', 'waiting_documents', 'documents_received',
+    // 'reviewing', 'in_preparation', 'pending_approval', 'submitted', 'waiting'
 
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at")
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-});
+    // Deadlines
+    taxAuthorityDueDate: date("tax_authority_due_date"),
+    internalDueDate: date("internal_due_date"),
+
+    // Submission
+    submittedAt: timestamp("submitted_at"),
+    submissionScreenshotPath: text("submission_screenshot_path"),
+    wasSubmittedLate: boolean("was_submitted_late").default(false),
+
+    // Penalties (if submitted late)
+    penaltyAmount: numeric("penalty_amount"),
+    penaltyStatus: text("penalty_status"), // 'received', 'appeal_submitted', 'cancelled', 'paid_by_client', 'paid_by_office'
+    penaltyReceivedDate: date("penalty_received_date"),
+    penaltyNotes: text("penalty_notes"),
+    appealDate: date("appeal_date"),
+    appealNotes: text("appeal_notes"),
+    penaltyPaidDate: date("penalty_paid_date"),
+    penaltyPaidAmount: numeric("penalty_paid_amount"),
+    penaltyPaidBy: text("penalty_paid_by"), // 'client', 'office'
+
+    data: jsonb("data").default({}),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    // Soft Delete
+    deletedAt: timestamp("deleted_at"),
+  },
+  (table) => [
+    index("declaration_firm_id_idx").on(table.firmId),
+    index("declaration_client_id_idx").on(table.clientId),
+    index("declaration_public_token_idx").on(table.publicToken),
+    index("declaration_firm_status_idx").on(table.firmId, table.status),
+    index("declaration_assigned_to_idx").on(table.assignedTo),
+  ]
+);
 
 // Documents: Files uploaded by client or firm
-export const document = pgTable("document", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  declarationId: text("declaration_id").notNull().references(() => declaration.id, { onDelete: "cascade" }),
-  uploadedBy: text("uploaded_by").references(() => user.id), // Who uploaded it (null if public portal)
-  
-  category: text("category").notNull(), // 'bank', 'real_estate', 'insurance', 'vehicles', 'abroad', 'other', 'general'
-  type: text("type"), // 'application/pdf', 'image/jpeg', etc. (Mime Type)
-  fileName: text("file_name").notNull(),
-  fileUrl: text("file_url").notNull(),
-  fileSize: integer("file_size"),
-  
-  status: text("status").default("pending"), // 'pending', 'approved', 'rejected'
-  rejectionReason: text("rejection_reason"),
-  
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const document = pgTable(
+  "document",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    declarationId: text("declaration_id").notNull().references(() => declaration.id, { onDelete: "cascade" }),
+    firmId: text("firm_id").notNull().references(() => firm.id), // Direct firm reference for security
+    uploadedBy: text("uploaded_by").references(() => user.id), // Who uploaded it (null if public portal)
+
+    category: text("category").notNull(), // 'bank', 'real_estate', 'insurance', 'vehicles', 'abroad', 'other', 'general'
+    type: text("type"), // 'application/pdf', 'image/jpeg', etc. (Mime Type)
+    fileName: text("file_name").notNull(),
+    fileUrl: text("file_url").notNull(),
+    fileSize: integer("file_size"),
+
+    status: text("status").default("pending"), // 'pending', 'approved', 'rejected'
+    rejectionReason: text("rejection_reason"),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("document_declaration_id_idx").on(table.declarationId),
+    index("document_firm_id_idx").on(table.firmId),
+  ]
+);
 
 // History: Status changes log
-export const declarationStatusHistory = pgTable("declaration_status_history", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  declarationId: text("declaration_id").notNull().references(() => declaration.id, { onDelete: "cascade" }),
-  firmId: text("firm_id").notNull().references(() => firm.id),
-  
-  fromStatus: text("from_status"),
-  toStatus: text("to_status").notNull(),
-  notes: text("notes"),
-  changedBy: text("changed_by").references(() => user.id), // Null if system/public
-  changedAt: timestamp("changed_at").defaultNow().notNull(),
-});
+export const declarationStatusHistory = pgTable(
+  "declaration_status_history",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    declarationId: text("declaration_id").notNull().references(() => declaration.id, { onDelete: "cascade" }),
+    firmId: text("firm_id").notNull().references(() => firm.id),
+
+    fromStatus: text("from_status"),
+    toStatus: text("to_status").notNull(),
+    notes: text("notes"),
+    changedBy: text("changed_by").references(() => user.id), // Null if system/public
+    changedAt: timestamp("changed_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("status_history_declaration_idx").on(table.declarationId),
+    index("status_history_firm_idx").on(table.firmId),
+  ]
+);
 
 // Communication: Log of calls, messages, letters
-export const declarationCommunication = pgTable("declaration_communication", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  declarationId: text("declaration_id").notNull().references(() => declaration.id, { onDelete: "cascade" }),
-  firmId: text("firm_id").notNull().references(() => firm.id),
-  
-  type: text("type").notNull(), // 'letter', 'phone_call', 'whatsapp', 'note'
-  direction: text("direction").notNull(), // 'outbound', 'inbound'
-  subject: text("subject"),
-  content: text("content"),
-  outcome: text("outcome"),
-  
-  communicatedAt: timestamp("communicated_at").defaultNow().notNull(),
-  createdBy: text("created_by").references(() => user.id),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export const declarationCommunication = pgTable(
+  "declaration_communication",
+  {
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    declarationId: text("declaration_id").notNull().references(() => declaration.id, { onDelete: "cascade" }),
+    firmId: text("firm_id").notNull().references(() => firm.id),
+
+    type: text("type").notNull(), // 'letter', 'phone_call', 'whatsapp', 'note'
+    direction: text("direction").notNull(), // 'outbound', 'inbound'
+    subject: text("subject"),
+    content: text("content"),
+    outcome: text("outcome"),
+
+    communicatedAt: timestamp("communicated_at").defaultNow().notNull(),
+    createdBy: text("created_by").references(() => user.id),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("communication_declaration_idx").on(table.declarationId),
+    index("communication_firm_idx").on(table.firmId),
+  ]
+);
