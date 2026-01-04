@@ -1,15 +1,14 @@
 "use server"
 
-import { headers } from "next/headers"
 import { eq } from "drizzle-orm"
-import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { firm, user } from "@/lib/schema"
 import { revalidatePath } from "next/cache"
 import { WhiteLabelSettings } from "@/components/settings/white-label-form"
+import { getSession } from "@/lib/session"
 
 export async function getFirmSettings() {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return null
 
   // If user has a firmId, fetch the firm
@@ -35,7 +34,7 @@ export async function getFirmSettings() {
 }
 
 export async function updateFirmSettings(data: WhiteLabelSettings) {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) throw new Error("Unauthorized")
 
   let firmId = (session.user as any).firmId

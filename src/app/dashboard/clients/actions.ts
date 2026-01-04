@@ -1,13 +1,12 @@
 "use server"
 
-import { headers } from "next/headers"
 import { eq, desc, and } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
-import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { client, declaration } from "@/lib/schema"
 import { ClientFormData } from "@/components/clients/client-form"
 import { DeclarationWithClient } from "@/app/dashboard/declarations/actions"
+import { getSession } from "@/lib/session"
 
 // Types matching the UI component
 export type Client = {
@@ -23,7 +22,7 @@ export type Client = {
 }
 
 export async function getClients(): Promise<Client[]> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return []
 
   const firmId = (session.user as any).firmId
@@ -70,7 +69,7 @@ export async function getClients(): Promise<Client[]> {
 }
 
 export async function getClientDetails(clientId: string): Promise<{ client: Client, declarations: DeclarationWithClient[] } | null> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return null
 
   const firmId = (session.user as any).firmId
@@ -120,7 +119,7 @@ export async function getClientDetails(clientId: string): Promise<{ client: Clie
 }
 
 export async function createClient(data: ClientFormData) {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) throw new Error("Unauthorized")
 
   const firmId = (session.user as any).firmId

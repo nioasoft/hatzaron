@@ -1,4 +1,3 @@
-import { headers } from "next/headers"
 import Link from "next/link"
 import {
   FileText,
@@ -11,7 +10,7 @@ import { StatCard } from "@/components/dashboard/stat-card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { auth } from "@/lib/auth"
+import { getSession } from "@/lib/session"
 import { db } from "@/lib/db"
 import { declaration, client } from "@/lib/schema"
 import { eq, desc, sql } from "drizzle-orm"
@@ -72,7 +71,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default async function DashboardPage() {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   const userName = session?.user?.name?.split(" ")[0] || "משתמש"
   const firmId = (session?.user as { firmId?: string })?.firmId
 

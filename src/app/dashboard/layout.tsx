@@ -1,17 +1,16 @@
-import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { ImpersonationBanner } from "@/components/admin/impersonation-banner"
 import { DashboardHeader } from "@/components/dashboard/header"
 import { Sidebar } from "@/components/dashboard/sidebar"
 import { getImpersonationState } from "@/lib/admin"
-import { auth } from "@/lib/auth"
+import { getSession } from "@/lib/session"
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
 
   if (!session) {
     redirect("/login")

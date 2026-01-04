@@ -1,4 +1,3 @@
-import { headers } from "next/headers"
 import Link from "next/link"
 import { Plus, FileText } from "lucide-react"
 
@@ -14,7 +13,7 @@ import { DeclarationTable } from "@/components/declarations/declaration-table"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
-import { auth } from "@/lib/auth"
+import { getSession } from "@/lib/session"
 import { DECLARATIONS } from "@/lib/constants/hebrew"
 
 export const dynamic = "force-dynamic"
@@ -32,8 +31,8 @@ interface PageProps {
 export default async function DeclarationsPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams
 
-  // Get session and check if user is admin
-  const session = await auth.api.getSession({ headers: await headers() })
+  // Get session and check if user is admin (uses cached session)
+  const session = await getSession()
   const userRole = (session?.user as { role?: string })?.role
   const isAdmin = userRole === "firm_admin" || userRole === "super_admin"
 

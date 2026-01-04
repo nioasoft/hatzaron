@@ -1,4 +1,3 @@
-import { headers } from "next/headers"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import {
@@ -23,8 +22,8 @@ import { StatusHistoryTimeline } from "@/components/declarations/status-history-
 import { WhatsAppReminderButton } from "@/components/declarations/whatsapp-reminder-button"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { getSession } from "@/lib/session"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { auth } from "@/lib/auth"
 import { DECLARATIONS, ACTIONS } from "@/lib/constants/hebrew"
 import { formatDateLong } from "@/lib/utils"
 
@@ -51,8 +50,8 @@ export default async function DeclarationDetailPage({
 }) {
   const { id } = await params
 
-  // Get session and check if user is admin
-  const session = await auth.api.getSession({ headers: await headers() })
+  // Get session and check if user is admin (uses cached session)
+  const session = await getSession()
   const userRole = (session?.user as { role?: string })?.role
   const isAdmin = userRole === "firm_admin" || userRole === "super_admin"
 

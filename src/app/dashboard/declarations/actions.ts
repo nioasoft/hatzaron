@@ -1,9 +1,8 @@
 "use server"
 
-import { headers } from "next/headers"
 import { eq, desc, and, or, sql, count } from "drizzle-orm"
-import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { getSession } from "@/lib/session"
 import { declaration, client, firm, document, user, declarationStatusHistory, declarationCommunication } from "@/lib/schema"
 import { revalidatePath } from "next/cache"
 import { randomBytes } from "crypto"
@@ -90,7 +89,7 @@ export type DeclarationWithClient = {
 }
 
 export async function getDeclarations(): Promise<DeclarationWithClient[]> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return []
 
   const firmId = (session.user as any).firmId
@@ -136,7 +135,7 @@ export interface CreateDeclarationData {
 }
 
 export async function createDeclaration(data: CreateDeclarationData) {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) throw new Error("Unauthorized")
 
   const firmId = (session.user as any).firmId
@@ -222,7 +221,7 @@ export type DeclarationDetails = {
 }
 
 export async function getDeclarationDetails(id: string): Promise<DeclarationDetails | null> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return null
 
   const firmId = (session.user as any).firmId
@@ -289,7 +288,7 @@ export async function updateDeclarationStatus(data: {
   newStatus: string
   notes?: string
 }): Promise<{ success: boolean; error?: string }> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return { success: false, error: "Unauthorized" }
 
   const firmId = (session.user as { firmId?: string }).firmId
@@ -333,7 +332,7 @@ export async function updateDeclarationStatus(data: {
 export async function getDeclarationStatusHistory(
   declarationId: string
 ): Promise<StatusHistoryEntry[]> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return []
 
   const firmId = (session.user as { firmId?: string }).firmId
@@ -389,7 +388,7 @@ export async function logCommunication(data: {
   outcome?: string
   communicatedAt?: Date
 }): Promise<{ success: boolean; error?: string }> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return { success: false, error: "Unauthorized" }
 
   const firmId = (session.user as { firmId?: string }).firmId
@@ -426,7 +425,7 @@ export async function logCommunication(data: {
 export async function getCommunications(
   declarationId: string
 ): Promise<CommunicationEntry[]> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return []
 
   const firmId = (session.user as { firmId?: string }).firmId
@@ -491,7 +490,7 @@ export async function updatePenalty(data: {
   penaltyPaidAmount?: string
   penaltyPaidBy?: string
 }): Promise<{ success: boolean; error?: string }> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return { success: false, error: "Unauthorized" }
 
   const firmId = (session.user as { firmId?: string }).firmId
@@ -531,7 +530,7 @@ export async function updatePenalty(data: {
 export async function getPenaltyDetails(
   declarationId: string
 ): Promise<PenaltyDetails | null> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return null
 
   const firmId = (session.user as { firmId?: string }).firmId
@@ -577,7 +576,7 @@ export async function getPenaltyDetails(
 // ============================================================
 
 export async function getDeclarationStats(): Promise<DeclarationStats> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) {
     return { total: 0, critical: 0, urgent: 0, waiting: 0, sent: 0, inProgress: 0, submitted: 0 }
   }
@@ -612,7 +611,7 @@ export async function assignAccountant(data: {
   declarationId: string
   accountantId: string | null
 }): Promise<{ success: boolean; error?: string }> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return { success: false, error: "Unauthorized" }
 
   const firmId = (session.user as { firmId?: string }).firmId
@@ -665,7 +664,7 @@ export async function assignAccountant(data: {
 }
 
 export async function getFirmAccountants(): Promise<Accountant[]> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return []
 
   const firmId = (session.user as { firmId?: string }).firmId
@@ -700,7 +699,7 @@ export async function sendEmailReminder(data: {
   reminderType: "documents_request" | "status_update" | "general"
   customMessage?: string
 }): Promise<{ success: boolean; error?: string }> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return { success: false, error: "Unauthorized" }
 
   const firmId = (session.user as { firmId?: string }).firmId
@@ -818,7 +817,7 @@ export type ClientSearchResult = {
 }
 
 export async function findClientByIdNumber(idNumber: string): Promise<ClientSearchResult | null> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return null
 
   const firmId = (session.user as { firmId?: string }).firmId
@@ -865,7 +864,7 @@ export interface CreateDeclarationWithClientData {
 export async function createDeclarationWithClient(
   data: CreateDeclarationWithClientData
 ): Promise<{ success: boolean; id?: string; error?: string }> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return { success: false, error: "Unauthorized" }
 
   const firmId = (session.user as { firmId?: string }).firmId
@@ -975,7 +974,7 @@ export async function createDeclarationWithClient(
 export async function getDeclarationsWithFilters(
   filters?: DeclarationFilters
 ): Promise<EnhancedDeclaration[]> {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await getSession()
   if (!session?.user) return []
 
   const firmId = (session.user as { firmId?: string }).firmId

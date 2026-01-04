@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
@@ -9,6 +10,15 @@ import { auth } from "@/lib/auth";
 export const protectedRoutes = ["/chat", "/dashboard", "/profile"];
 
 /**
+ * Cached session fetcher - deduplicates session lookups within a single request.
+ * React's cache() ensures this only hits the database once per request,
+ * even if called multiple times from different components/actions.
+ */
+export const getSession = cache(async () => {
+  return await auth.api.getSession({ headers: await headers() });
+});
+
+/**
  * Checks if the current request is authenticated.
  * Should be called in Server Components for protected routes.
  *
@@ -16,7 +26,7 @@ export const protectedRoutes = ["/chat", "/dashboard", "/profile"];
  * @throws Redirects to home page if not authenticated
  */
 export async function requireAuth() {
-  const session = await auth.api.getSession({ headers: await headers() });
+  const session = await getSession();
 
   if (!session) {
     redirect("/");
@@ -32,7 +42,7 @@ export async function requireAuth() {
  * @returns The session object or null
  */
 export async function getOptionalSession() {
-  return await auth.api.getSession({ headers: await headers() });
+  return await getSession();
 }
 
 /**
