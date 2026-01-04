@@ -226,10 +226,15 @@ export type DeclarationDetails = {
   declarationDate: Date
   createdAt: Date
   deadline: Date | null
+  taxAuthorityDueDate: Date | null
+  internalDueDate: Date | null
   status: string
   priority: string
   assignedTo: string | null
   publicToken: string | null
+  wasSubmittedLate: boolean
+  penaltyAmount: string | null
+  penaltyStatus: string | null
   documents: {
     id: string
     fileName: string
@@ -284,10 +289,15 @@ export async function getDeclarationDetails(id: string): Promise<DeclarationDeta
     declarationDate: data.declaration.declarationDate || new Date(),
     createdAt: data.declaration.createdAt,
     deadline: data.declaration.taxAuthorityDueDate ? new Date(data.declaration.taxAuthorityDueDate) : null,
+    taxAuthorityDueDate: data.declaration.taxAuthorityDueDate ? new Date(data.declaration.taxAuthorityDueDate) : null,
+    internalDueDate: data.declaration.internalDueDate ? new Date(data.declaration.internalDueDate) : null,
     status: data.declaration.status || "draft",
     priority: data.declaration.priority || "normal",
     assignedTo: data.declaration.assignedTo,
     publicToken: data.declaration.publicToken,
+    wasSubmittedLate: data.declaration.wasSubmittedLate ?? false,
+    penaltyAmount: data.declaration.penaltyAmount,
+    penaltyStatus: data.declaration.penaltyStatus,
     documents: docs.map(doc => ({
       id: doc.id,
       fileName: doc.fileName,

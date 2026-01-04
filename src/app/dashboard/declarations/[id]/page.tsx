@@ -4,44 +4,54 @@ import {
   ArrowRight,
   Edit,
   FileText,
-  Users,
+  Calendar,
   Clock,
   AlertCircle,
+  ExternalLink,
+  Phone,
+  Mail,
 } from "lucide-react"
 
 import { getDeclarationDetails, getFirmAccountants } from "@/app/dashboard/declarations/actions"
-import { AssignAccountantSelect } from "@/components/declarations/assign-accountant-select"
-import { CommunicationHistoryCard } from "@/components/declarations/communication-history-card"
 import { DeclarationStatusBadge } from "@/components/declarations/declaration-status"
 import { LogCommunicationDialog } from "@/components/declarations/log-communication-dialog"
-import { PenaltyManagementCard } from "@/components/declarations/penalty-management-card"
+import { OfficeStatusCard } from "@/components/declarations/office-status-card"
 import { PortalLinkButton } from "@/components/declarations/portal-link-button"
 import { SendReminderDialog } from "@/components/declarations/send-reminder-dialog"
 import { StatusChangeDialog } from "@/components/declarations/status-change-dialog"
-import { StatusHistoryTimeline } from "@/components/declarations/status-history-timeline"
+import { UnifiedTimeline } from "@/components/declarations/unified-timeline"
 import { WhatsAppReminderButton } from "@/components/declarations/whatsapp-reminder-button"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { getSession } from "@/lib/session"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import { DECLARATIONS, ACTIONS } from "@/lib/constants/hebrew"
+import { getSession } from "@/lib/session"
 import { formatDateLong } from "@/lib/utils"
 
 interface DeclarationDetailPageParams {
   id: string
 }
 
-function PriorityBadge({ priority }: { priority: string }) {
-  if (priority === 'critical') {
-    return <Badge variant="destructive" className="flex w-fit items-center gap-1"><AlertCircle className="h-3 w-3" /> קריטי</Badge>
+function PriorityIndicator({ priority }: { priority: string }) {
+  if (priority === "critical") {
+    return (
+      <div className="flex items-center gap-2 text-destructive">
+        <AlertCircle className="h-4 w-4" />
+        <span className="font-medium">קריטי</span>
+      </div>
+    )
   }
-  if (priority === 'urgent') {
-    return <Badge variant="outline" className="flex w-fit items-center gap-1 border-orange-500 text-orange-500"><Clock className="h-3 w-3" /> דחוף</Badge>
+  if (priority === "urgent") {
+    return (
+      <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+        <Clock className="h-4 w-4" />
+        <span className="font-medium">דחוף</span>
+      </div>
+    )
   }
-  return <span className="text-muted-foreground text-sm">רגיל</span>
+  return <span className="text-muted-foreground">רגיל</span>
 }
-
-
 
 export default async function DeclarationDetailPage({
   params,
@@ -50,12 +60,10 @@ export default async function DeclarationDetailPage({
 }) {
   const { id } = await params
 
-  // Get session and check if user is admin (uses cached session)
   const session = await getSession()
   const userRole = (session?.user as { role?: string })?.role
   const isAdmin = userRole === "firm_admin" || userRole === "super_admin"
 
-  // Fetch declaration and accountants in parallel
   const [declaration, accountants] = await Promise.all([
     getDeclarationDetails(id),
     getFirmAccountants(),
@@ -69,235 +77,275 @@ export default async function DeclarationDetailPage({
     a.category.localeCompare(b.category)
   )
 
-  // Group documents by category for display
   const documentsByCategory: Record<string, typeof declaration.documents> = {}
-  sortedDocuments.forEach(doc => {
+  sortedDocuments.forEach((doc) => {
     if (!documentsByCategory[doc.category]) {
       documentsByCategory[doc.category] = []
     }
     documentsByCategory[doc.category]!.push(doc)
   })
 
-  // Generate portal URL for reminder dialog
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
-  const portalUrl = declaration.publicToken ? `${appUrl}/portal/${declaration.publicToken}` : null
+  const portalUrl = declaration.publicToken
+    ? `${appUrl}/portal/${declaration.publicToken}`
+    : null
+  const documentCount = declaration.documents.length
+  const categoryCount = Object.keys(documentsByCategory).length
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
+      {/* Breadcrumb & Actions Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 text-sm">
+          <Button variant="ghost" size="sm" asChild className="gap-2">
             <Link href="/dashboard/declarations">
               <ArrowRight className="h-4 w-4" />
-              <span className="sr-only">{ACTIONS.back}</span>
+              {DECLARATIONS.title}
             </Link>
           </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{declaration.client.name}</h1>
-              {/* Status badge wrapped in StatusChangeDialog */}
-              <StatusChangeDialog
-                declarationId={declaration.id}
-                currentStatus={declaration.status}
-              >
-                <button type="button" className="cursor-pointer">
-                  <DeclarationStatusBadge status={declaration.status as any} />
-                </button>
-              </StatusChangeDialog>
-            </div>
-            <p className="text-muted-foreground">
-              הצהרת הון {declaration.year} - נוצרה ב-{formatDateLong(declaration.createdAt)}
-            </p>
-          </div>
+          <span className="text-muted-foreground">/</span>
+          <span className="text-muted-foreground truncate max-w-[200px]">
+            {declaration.client.name}
+          </span>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button asChild>
+          <Button variant="outline" asChild>
             <Link href={`/dashboard/declarations/${declaration.id}/edit`}>
               <Edit className="h-4 w-4 me-2" />
               {ACTIONS.edit}
             </Link>
           </Button>
-          {/* Log Communication Dialog */}
           <LogCommunicationDialog declarationId={declaration.id} />
-          {/* WhatsApp Reminder Button */}
-          <WhatsAppReminderButton
-            declarationId={declaration.id}
-            clientPhone={declaration.client.phone}
-            clientName={declaration.client.name}
-            year={declaration.year}
-            publicToken={declaration.publicToken}
-          />
-          {/* Send Email Reminder Dialog */}
-          <SendReminderDialog
-            declarationId={declaration.id}
-            clientName={declaration.client.name}
-            clientEmail={declaration.client.email}
-            year={declaration.year}
-            portalUrl={portalUrl}
-          />
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main Content */}
-        <div className="space-y-6 lg:col-span-2">
-          {/* Client Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                פרטי לקוח
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-sm text-muted-foreground">שם מלא</p>
-                <p className="font-medium">{declaration.client.name}</p>
+      {/* Main Header Card */}
+      <Card className="overflow-hidden">
+        <div className="bg-gradient-to-l from-primary/5 to-transparent p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-3 flex-1">
+              {/* Client name and status */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-2xl font-bold">{declaration.client.name}</h1>
+                <StatusChangeDialog
+                  declarationId={declaration.id}
+                  currentStatus={declaration.status}
+                >
+                  <button
+                    type="button"
+                    className="cursor-pointer transition-transform hover:scale-105"
+                  >
+                    <DeclarationStatusBadge status={declaration.status as any} />
+                  </button>
+                </StatusChangeDialog>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">תעודת זהות</p>
-                <p className="font-medium" dir="ltr">
-                  {declaration.client.idNumber || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">טלפון</p>
-                <p className="font-medium" dir="ltr">
-                  {declaration.client.phone || "-"}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">אימייל</p>
-                <p className="font-medium" dir="ltr">
-                  {declaration.client.email || "-"}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Documents List */}
+              {/* Meta info row */}
+              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-4 w-4" />
+                  <span>הצהרת הון {declaration.year}</span>
+                </div>
+                <Separator orientation="vertical" className="h-4" />
+                <div className="flex items-center gap-1.5">
+                  <FileText className="h-4 w-4" />
+                  <span>{documentCount} מסמכים</span>
+                </div>
+                <Separator orientation="vertical" className="h-4" />
+                <PriorityIndicator priority={declaration.priority} />
+              </div>
+
+              {/* Contact info */}
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                {declaration.client.phone && (
+                  <a
+                    href={`tel:${declaration.client.phone}`}
+                    className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                    dir="ltr"
+                  >
+                    <Phone className="h-4 w-4" />
+                    {declaration.client.phone}
+                  </a>
+                )}
+                {declaration.client.email && (
+                  <a
+                    href={`mailto:${declaration.client.email}`}
+                    className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                    dir="ltr"
+                  >
+                    <Mail className="h-4 w-4" />
+                    {declaration.client.email}
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex flex-wrap gap-2 lg:flex-col lg:items-end">
+              <WhatsAppReminderButton
+                declarationId={declaration.id}
+                clientPhone={declaration.client.phone}
+                clientName={declaration.client.name}
+                year={declaration.year}
+                publicToken={declaration.publicToken}
+              />
+              <SendReminderDialog
+                declarationId={declaration.id}
+                clientName={declaration.client.name}
+                clientEmail={declaration.client.email}
+                year={declaration.year}
+                portalUrl={portalUrl}
+              />
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Main Content - 2/3 */}
+        <div className="space-y-6 lg:col-span-2">
+          {/* Documents Card */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                מסמכים שהועלו
-              </CardTitle>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  מסמכים
+                </CardTitle>
+                {documentCount > 0 && (
+                  <Badge variant="secondary">
+                    {documentCount} מסמכים ב-{categoryCount} קטגוריות
+                  </Badge>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
               {Object.keys(documentsByCategory).length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {Object.entries(documentsByCategory).map(([categoryKey, docs]) => {
-                    const categoryLabel = DECLARATIONS.categories?.[categoryKey as keyof typeof DECLARATIONS.categories] || categoryKey
+                    const categoryLabel =
+                      DECLARATIONS.categories?.[
+                        categoryKey as keyof typeof DECLARATIONS.categories
+                      ] || categoryKey
                     return (
-                      <div key={categoryKey}>
-                        <div className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                          <FileText className="h-4 w-4" />
-                          {categoryLabel}
+                      <div key={categoryKey} className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-sm font-semibold text-foreground">
+                            {categoryLabel}
+                          </h3>
+                          <Badge variant="outline" className="text-xs">
+                            {docs.length}
+                          </Badge>
                         </div>
-                        {docs.map((doc) => (
-                          <div
-                            key={doc.id}
-                            className="flex items-center justify-between border-b py-2 last:border-0"
-                          >
-                            <div>
-                              <p className="font-medium">{doc.fileName}</p>
-                              <p className="text-sm text-muted-foreground">{formatDateLong(doc.createdAt)}</p>
+                        <div className="rounded-lg border bg-muted/30">
+                          {docs.map((doc, idx) => (
+                            <div
+                              key={doc.id}
+                              className={`flex items-center justify-between p-3 gap-3 ${
+                                idx !== docs.length - 1 ? "border-b" : ""
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0 flex-1">
+                                <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
+                                  <FileText className="h-4 w-4 text-primary" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-medium text-sm truncate">
+                                    {doc.fileName}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatDateLong(doc.createdAt)}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button variant="ghost" size="sm" asChild className="shrink-0">
+                                <Link
+                                  href={doc.fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </Link>
+                              </Button>
                             </div>
-                            <Button variant="ghost" size="sm" asChild>
-                              <Link href={doc.fileUrl} target="_blank" rel="noopener noreferrer">
-                                <ArrowRight className="h-4 w-4 me-2" />
-                                צפה
-                              </Link>
-                            </Button>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     )
                   })}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-center py-6">
-                  עדיין לא הועלו מסמכים להצהרה זו.
-                </p>
+                <div className="text-center py-10 text-muted-foreground">
+                  <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                    <FileText className="h-6 w-6" />
+                  </div>
+                  <p className="font-medium">אין מסמכים</p>
+                  <p className="text-sm mt-1">עדיין לא הועלו מסמכים להצהרה זו</p>
+                </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Penalty Management Card - shown conditionally based on late submission */}
-          <PenaltyManagementCard declarationId={declaration.id} />
+          {/* Office Status Card (NEW) */}
+          <OfficeStatusCard
+            declarationId={declaration.id}
+            taxAuthorityDueDate={declaration.taxAuthorityDueDate}
+            internalDueDate={declaration.internalDueDate}
+            assignedTo={declaration.assignedTo}
+            accountants={accountants}
+            isAdmin={isAdmin}
+            wasSubmittedLate={declaration.wasSubmittedLate}
+            penaltyAmount={declaration.penaltyAmount}
+            penaltyStatus={declaration.penaltyStatus}
+          />
+
+          {/* Unified Timeline (NEW) */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">היסטוריה</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <UnifiedTimeline declarationId={declaration.id} />
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Sidebar */}
+        {/* Sidebar - 1/3 (Simplified) */}
         <div className="space-y-6">
-
           {/* Portal Link */}
           {declaration.publicToken && (
             <Card>
-              <CardHeader>
-                <CardTitle>פורטל לקוח</CardTitle>
-                <CardDescription>שתף קישור זה עם הלקוח</CardDescription>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">פורטל לקוח</CardTitle>
               </CardHeader>
-              <CardContent className="flex justify-between items-center bg-muted/30 p-3 m-6 mt-0 rounded-lg">
-                <span className="text-sm text-muted-foreground truncate flex-1">
-                  קישור לפורטל
-                </span>
-                <PortalLinkButton token={declaration.publicToken} />
+              <CardContent>
+                <div className="rounded-lg border bg-gradient-to-l from-primary/5 to-transparent p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <ExternalLink className="h-4 w-4 text-primary" />
+                      <span className="font-medium">קישור לפורטל</span>
+                    </div>
+                    <PortalLinkButton token={declaration.publicToken} />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Key Dates */}
+          {/* Client ID */}
           <Card>
-            <CardHeader>
-              <CardTitle>תאריכים חשובים</CardTitle>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">פרטי לקוח</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">תאריך יצירה</p>
-                <p className="font-medium" dir="ltr">
-                  {formatDateLong(declaration.createdAt)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">דדליין להגשה</p>
-                <p className="font-medium" dir="ltr">
-                  {declaration.deadline ? formatDateLong(declaration.deadline) : "-"}
-                </p>
+            <CardContent>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">ת.ז.</span>
+                <span className="font-medium" dir="ltr">
+                  {declaration.client.idNumber || "-"}
+                </span>
               </div>
             </CardContent>
           </Card>
-
-          {/* Assigned Accountant */}
-          <Card>
-            <CardHeader>
-              <CardTitle>רו״ח אחראי</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AssignAccountantSelect
-                declarationId={declaration.id}
-                currentAssignee={declaration.assignedTo}
-                accountants={accountants}
-                isAdmin={isAdmin}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Priority */}
-          <Card>
-            <CardHeader>
-              <CardTitle>עדיפות</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PriorityBadge priority={declaration.priority} />
-            </CardContent>
-          </Card>
-
-          {/* Status History Timeline */}
-          <StatusHistoryTimeline declarationId={declaration.id} />
-
-          {/* Communication History */}
-          <CommunicationHistoryCard declarationId={declaration.id} />
         </div>
       </div>
     </div>
